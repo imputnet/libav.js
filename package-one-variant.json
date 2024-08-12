@@ -1,5 +1,5 @@
 {
-  "name": "@libav.js/variant-@VARIANT",
+  "name": "@imput/libav.js-@VARIANT",
   "version": "@VER",
   "description": "A compilation of the libraries associated with handling audio and video in ffmpeg—libavformat, libavcodec, libavfilter, libavutil and libswresample—for WebAssembly and asm.js, and thus the web.",
   "main": "dist/libav-@VARIANT.js",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Yahweasel/libav.js.git"
+    "url": "git+https://github.com/imputnet/libav.js.git"
   },
   "keywords": [
     "ffmpeg",
@@ -27,10 +27,10 @@
     "mux",
     "demux"
   ],
-  "author": "Yahweasel",
+  "author": "imput <meow@imput.net>",
   "license": "LGPL-2.1",
   "bugs": {
-    "url": "https://github.com/Yahweasel/libav.js/issues"
+    "url": "https://github.com/imputnet/libav.js/issues"
   },
-  "homepage": "https://github.com/Yahweasel/libav.js#readme"
+  "homepage": "https://github.com/imputnet/libav.js#readme"
 }
