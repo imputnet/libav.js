@@ -31,6 +31,14 @@ const aac = ["parser-aac", "codec-aac"];
 const h264 = ["parser-h264", "decoder-h264", "codec-libopenh264"];
 const hevc = ["parser-hevc", "decoder-hevc"];
 
+// Images
+const images = [
+    "format-image2", "demuxer-image_gif_pipe", "demuxer-image_jpeg_pipe",
+    "demuxer-image_png_pipe",
+    "parser-gif", "codec-gif", "parser-mjpeg",
+    "codec-mjpeg", "parser-png", "codec-png", "parser-webp", "decoder-webp",
+];
+
 const configsRaw = [
     // Audio sensible:
     ["default", [
@@ -96,11 +104,7 @@ const configsRaw = [
 
     // These are here so that "all" will have them for testing
     ["extras", [
-        // Images
-        "format-image2", "demuxer-image_gif_pipe", "demuxer-image_jpeg_pipe",
-        "demuxer-image_png_pipe",
-        "parser-gif", "codec-gif", "parser-mjpeg",
-        "codec-mjpeg", "parser-png", "codec-png", "parser-webp", "decoder-webp",
+        images,
 
         // Raw data
         "format-rawvideo", "codec-rawvideo",
@@ -112,6 +116,29 @@ const configsRaw = [
         // HLS
         "format-hls", "protocol-jsfetch"
     ]],
+
+    ["encode", [
+            "format-image2", "demuxer-image_jpeg_pipe", "parser-mjpeg", "format-mjpeg", "codec-mjpeg",
+            "demuxer-image_png_pipe", "codec-png", "format-png","parser-png",
+            "demuxer-image_gif_pipe", "codec-gif","format-gif",
+            "parser-gif","decoder-webp","encoder-libwebp","encoder-libwebp_anim","format-webp","parser-webp",
+
+            "format-mov", "format-mp4", "audio-filters", "swscale",
+            "format-matroska", "format-webm", "format-avi",
+
+            "parser-av1","codec-libaom_av1",
+            "libvpx",
+            "parser-vp8","codec-libvpx_vp8",
+            "parser-vp9","codec-libvpx_vp9",
+
+            "format-wav", "format-ipod", "format-flac", "format-mp3", "format-ogg", "format-opus",
+            "parser-opus","codec-libopus","codec-libvorbis","codec-alac", "decoder-mp3","encoder-libmp3lame",
+            "parser-flac","codec-flac",
+            "format-pcm_alaw","codec-pcm_alaw","format-pcm_bluray","codec-pcm_bluray","format-pcm_dvd","codec-pcm_dvd","format-pcm_f16le","codec-pcm_f16le","format-pcm_f24le","codec-pcm_f24le","format-pcm_f32be","codec-pcm_f32be","format-pcm_f32le","codec-pcm_f32le","format-pcm_f64be","codec-pcm_f64be","format-pcm_f64le","codec-pcm_f64le","format-pcm_lxf","codec-pcm_lxf","format-pcm_mulaw","codec-pcm_mulaw","format-pcm_s16be","codec-pcm_s16be","format-pcm_s16be_planar","codec-pcm_s16be_planar","format-pcm_s16le","codec-pcm_s16le","format-pcm_s16le_planar","codec-pcm_s16le_planar","format-pcm_s24be","codec-pcm_s24be","format-pcm_s24daud","codec-pcm_s24daud","format-pcm_s24le","codec-pcm_s24le","format-pcm_s24le_planar","codec-pcm_s24le_planar","format-pcm_s32be","codec-pcm_s32be","format-pcm_s32le","codec-pcm_s32le","format-pcm_s32le_planar","codec-pcm_s32le_planar","format-pcm_s64be","codec-pcm_s64be","format-pcm_s64le","codec-pcm_s64le","format-pcm_s8","codec-pcm_s8","format-pcm_s8_planar","codec-pcm_s8_planar","format-pcm_sga","codec-pcm_sga","format-pcm_u16be","codec-pcm_u16be","format-pcm_u16le","codec-pcm_u16le","format-pcm_u24be","codec-pcm_u24be","format-pcm_u24le","codec-pcm_u24le","format-pcm_u32be","codec-pcm_u32be","format-pcm_u32le","codec-pcm_u32le","format-pcm_u8","codec-pcm_u8","format-pcm_vidc","codec-pcm_vidc",
+
+            "format-avif", "codec-prores", "codec-qtrle"
+        ], { cli: true }
+    ],
 
     ["remux", [
         "format-mp3","format-mp4",
