@@ -113,6 +113,13 @@ const configsRaw = [
         "format-hls", "protocol-jsfetch"
     ]],
 
+    ["remux", [
+        "format-mp3","format-mp4",
+        "format-webm","format-ogg",
+        "format-opus","parser-opus",
+        "format-wav","format-ipod"
+    ], { cli: true }],
+
     ["empty", []],
     ["all", null]
 ];
