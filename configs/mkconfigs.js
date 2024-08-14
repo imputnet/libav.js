@@ -152,7 +152,7 @@ const configsRaw = [
 
             "format-ipod", "format-flac", "format-mp3", "format-ogg", "format-opus",
             "parser-opus","codec-libopus","codec-libvorbis","codec-alac", "decoder-mp3","encoder-libmp3lame",
-            "parser-flac","codec-flac",
+            "parser-flac","codec-flac", "format-aac", "parser-aac",
             wav,
 
             "format-avif", "codec-prores", "codec-qtrle"

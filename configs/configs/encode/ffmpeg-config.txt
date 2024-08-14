@@ -93,6 +93,8 @@
 --enable-parser=flac
 --enable-decoder=flac
 --enable-encoder=flac
+--enable-demuxer=aac
+--enable-parser=aac
 --enable-decoder=pcm_s16le --enable-decoder=pcm_s24le
 --enable-demuxer=wav
 --enable-encoder=pcm_s16le --enable-encoder=pcm_s24le
