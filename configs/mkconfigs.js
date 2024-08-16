@@ -27,7 +27,7 @@ const aomav1 = ["parser-av1", "codec-libaom_av1"];
 const aomsvtav1 = ["parser-av1", "decoder-libaom_av1", "encoder-libsvtav1"];
 
 // Misanthropic Patent Extortion Gang (formats/codecs by reprobates)
-const aac = ["parser-aac", "codec-aac"];
+const aac = ["format-aac", "parser-aac", "codec-aac"];
 const h264 = ["parser-h264", "decoder-h264", "codec-libopenh264"];
 const hevc = ["parser-hevc", "decoder-hevc"];
 
@@ -193,9 +193,7 @@ const configsRaw = [
 
             "muxer-ipod", "format-flac", "format-mp3", "format-ogg", "muxer-opus",
             "parser-opus","codec-libopus","codec-libvorbis","codec-alac", "decoder-mp3","encoder-libmp3lame",
-            "parser-flac","codec-flac", "format-aac", "parser-aac",
-            wav,
-
+            "parser-flac","codec-flac", wav, aac,
             "muxer-avif", "codec-prores", "codec-qtrle"
         ], { cli: true }
     ],

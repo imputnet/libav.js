@@ -7,6 +7,7 @@
 --enable-demuxer=aac
 --enable-demuxer=matroska
 --enable-muxer=matroska --enable-muxer=webm
+--enable-demuxer=aac
 --enable-parser=aac
 --enable-decoder=aac
 --enable-encoder=aac
