@@ -1,2 +1,5 @@
 build/inst/@TARGET/lib/libz.a
 build/inst/@TARGET/lib/libwebp.a
+build/inst/@TARGET/lib/libwebpmux.a
+build/inst/@TARGET/lib/libwebpdemux.a
+build/inst/@TARGET/lib/libsharpyuv.a

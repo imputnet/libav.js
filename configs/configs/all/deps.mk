@@ -13,4 +13,10 @@ build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-all/ffbuild/config.mak: build/inst/base/lib/pkgconfig/zlib.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/zlib.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-all/ffbuild/config.mak: build/inst/base/lib/pkgconfig/libwebp.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-base-all/ffbuild/config.mak: build/inst/base/lib/pkgconfig/libwebpdemux.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-base-all/ffbuild/config.mak: build/inst/base/lib/pkgconfig/libwebpmux.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-base-all/ffbuild/config.mak: build/inst/base/lib/pkgconfig/libsharpyuv.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libwebp.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libwebpdemux.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libwebpmux.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libsharpyuv.pc

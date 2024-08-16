@@ -1,1 +1,1 @@
-["format-mp3","format-mp4","format-webm","format-ogg","format-opus","parser-opus","format-wav","format-ipod","cli"]
+["format-mp3","format-mp4","format-webm","format-ogg","muxer-opus","parser-opus","format-wav","muxer-ipod","cli"]

@@ -4,13 +4,11 @@
 --enable-muxer=image2
 --enable-demuxer=mjpeg
 --enable-muxer=mjpeg
---enable-demuxer=png
---enable-muxer=png
 --enable-demuxer=gif
 --enable-decoder=gif
 --enable-muxer=gif
 --enable-encoder=gif
---enable-demuxer=webp
+--enable-demuxer=image_webp_pipe
 --enable-muxer=webp
 --enable-demuxer=image_gif_pipe
 --enable-demuxer=image_jpeg_pipe

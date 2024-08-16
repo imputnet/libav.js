@@ -1,1 +1,4 @@
 build/inst/@TARGET/lib/pkgconfig/libwebp.pc
+build/inst/@TARGET/lib/pkgconfig/libwebpdemux.pc
+build/inst/@TARGET/lib/pkgconfig/libwebpmux.pc
+build/inst/@TARGET/lib/pkgconfig/libsharpyuv.pc

@@ -33,7 +33,8 @@ const hevc = ["parser-hevc", "decoder-hevc"];
 
 // Images
 const images = [
-    "format-image2", "format-mjpeg", "format-png", "format-gif", "format-webp",
+    "format-image2", "format-mjpeg", "format-gif",
+    "demuxer-image_webp_pipe", "muxer-webp",
     "demuxer-image_gif_pipe", "demuxer-image_jpeg_pipe", "demuxer-image_png_pipe",
     "parser-mjpeg", "parser-png", "parser-gif", "parser-webp",
     "codec-gif", "codec-mjpeg", "codec-png",
@@ -42,23 +43,63 @@ const images = [
 
 // all WAV formats under the sun
 const wav = [
-    "format-wav", "format-pcm_alaw", "codec-pcm_alaw", "format-pcm_bluray", "codec-pcm_bluray",
-    "format-pcm_dvd", "codec-pcm_dvd", "format-pcm_f16le",
-    "codec-pcm_f16le", "format-pcm_f24le", "codec-pcm_f24le", "format-pcm_f32be", "codec-pcm_f32be",
-    "format-pcm_f32le", "codec-pcm_f32le",
-    "format-pcm_f64be", "codec-pcm_f64be", "format-pcm_f64le", "codec-pcm_f64le", "format-pcm_lxf",
-    "codec-pcm_lxf", "format-pcm_s16le", "format-pcm_mulaw", "codec-pcm_mulaw",
-    "format-pcm_s16be", "codec-pcm_s16be", "format-pcm_s16be_planar", "codec-pcm_s16be_planar",
-    "codec-pcm_s16le", "format-pcm_s64le", "codec-pcm_s64le", "format-pcm_s24daud", "codec-pcm_s24daud",
-    "format-pcm_s16le_planar", "codec-pcm_s16le_planar", "format-pcm_s24be", "codec-pcm_s24be",
-    "format-pcm_s24le", "codec-pcm_s24le", "format-pcm_s24le_planar", "codec-pcm_s24le_planar",
-    "format-pcm_s32be", "codec-pcm_s32be", "format-pcm_s32le", "codec-pcm_s64be",
-    "codec-pcm_s32le", "format-pcm_s32le_planar", "codec-pcm_s32le_planar", "format-pcm_s64be",
-    "format-pcm_s8", "codec-pcm_s8", "format-pcm_s8_planar", "codec-pcm_s8_planar", "format-pcm_sga",
-    "codec-pcm_sga", "format-pcm_u16be", "format-pcm_u24le", "codec-pcm_u24le",
-    "codec-pcm_u16be", "format-pcm_u16le", "codec-pcm_u16le", "format-pcm_u24be", "codec-pcm_u24be",
-    "format-pcm_u32be", "codec-pcm_u32be", "format-pcm_u32le", "codec-pcm_u32le", "format-pcm_u8",
-    "codec-pcm_u8", "format-pcm_vidc", "codec-pcm_vidc",
+    "codec-pcm_s16le",
+    "decoder-pcm_alaw",
+    "decoder-pcm_bluray",
+    "decoder-pcm_dvd",
+    "decoder-pcm_f16le",
+    "decoder-pcm_f24le",
+    "decoder-pcm_f32be",
+    "decoder-pcm_f32le",
+    "decoder-pcm_f64be",
+    "decoder-pcm_f64le",
+    "decoder-pcm_lxf",
+    "decoder-pcm_mulaw",
+    "decoder-pcm_s16be",
+    "decoder-pcm_s16be_planar",
+    "decoder-pcm_s16le_planar",
+    "decoder-pcm_s24be",
+    "decoder-pcm_s24daud",
+    "decoder-pcm_s24le",
+    "decoder-pcm_s24le_planar",
+    "decoder-pcm_s32be",
+    "decoder-pcm_s32le",
+    "decoder-pcm_s32le_planar",
+    "decoder-pcm_s64be",
+    "decoder-pcm_s64le",
+    "decoder-pcm_s8",
+    "decoder-pcm_s8_planar",
+    "decoder-pcm_sga",
+    "decoder-pcm_u16be",
+    "decoder-pcm_u16le",
+    "decoder-pcm_u24be",
+    "decoder-pcm_u24le",
+    "decoder-pcm_u32be",
+    "decoder-pcm_u32le",
+    "decoder-pcm_u8",
+    "decoder-pcm_vidc",
+    "demuxer-pcm_alaw",
+    "demuxer-pcm_f32be",
+    "demuxer-pcm_f32le",
+    "demuxer-pcm_f64be",
+    "demuxer-pcm_f64le",
+    "demuxer-pcm_mulaw",
+    "demuxer-pcm_s16be",
+    "demuxer-pcm_s24be",
+    "demuxer-pcm_s24le",
+    "demuxer-pcm_s32be",
+    "demuxer-pcm_s32le",
+    "demuxer-pcm_s8",
+    "demuxer-pcm_u16be",
+    "demuxer-pcm_u16le",
+    "demuxer-pcm_u24be",
+    "demuxer-pcm_u24le",
+    "demuxer-pcm_u32be",
+    "demuxer-pcm_u32le",
+    "demuxer-pcm_u8",
+    "demuxer-pcm_vidc",
+    "format-pcm_s16le",
+    "format-wav"
 ];
 
 const configsRaw = [
@@ -150,20 +191,20 @@ const configsRaw = [
             "parser-vp8","codec-libvpx_vp8",
             "parser-vp9","codec-libvpx_vp9",
 
-            "format-ipod", "format-flac", "format-mp3", "format-ogg", "format-opus",
+            "muxer-ipod", "format-flac", "format-mp3", "format-ogg", "muxer-opus",
             "parser-opus","codec-libopus","codec-libvorbis","codec-alac", "decoder-mp3","encoder-libmp3lame",
             "parser-flac","codec-flac", "format-aac", "parser-aac",
             wav,
 
-            "format-avif", "codec-prores", "codec-qtrle"
+            "muxer-avif", "codec-prores", "codec-qtrle"
         ], { cli: true }
     ],
 
     ["remux", [
         "format-mp3","format-mp4",
         "format-webm","format-ogg",
-        "format-opus","parser-opus",
-        "format-wav","format-ipod"
+        "muxer-opus","parser-opus",
+        "format-wav","muxer-ipod"
     ], { cli: true }],
 
     ["empty", []],
