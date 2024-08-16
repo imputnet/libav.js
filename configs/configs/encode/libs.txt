@@ -1,4 +1,5 @@
 build/inst/@TARGET/lib/libz.a
+build/inst/@TARGET/lib/libwebp.a
 build/inst/@TARGET/lib/libaom.a
 build/inst/@TARGET/lib/libvpx.a
 build/inst/@TARGET/lib/libopus.a

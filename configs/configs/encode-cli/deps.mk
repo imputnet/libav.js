@@ -1,5 +1,7 @@
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/inst/base/lib/pkgconfig/zlib.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode-cli/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/zlib.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/inst/base/lib/pkgconfig/libwebp.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode-cli/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libwebp.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/inst/base/lib/pkgconfig/aom.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode-cli/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/aom.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/inst/base/lib/pkgconfig/vpx.pc

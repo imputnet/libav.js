@@ -553,7 +553,7 @@ release: extract
 	done
 	cp dist/libav.types.d.ts dist/release/libav.js-$(LIBAVJS_VERSION)/dist/
 	mkdir dist/release/libav.js-$(LIBAVJS_VERSION)/sources
-	for t in ffmpeg lame libaom libogg libvorbis libvpx opus zlib; \
+	for t in ffmpeg lame libaom libogg libvorbis libwebp libvpx opus zlib; \
 	do \
 		$(MAKE) $$t-release; \
 	done
@@ -602,6 +602,7 @@ clean: halfclean
 	-rm -rf build/openh264-$(OPENH264_VERSION)
 	-rm -rf build/ffmpeg-$(FFMPEG_VERSION)
 	-rm -rf build/zlib-$(ZLIB_VERSION)
+	-rm -rf build/libwebp-$(LIBWEBP_VERSION)
 
 distclean: clean
 	-rm -rf build/

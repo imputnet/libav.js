@@ -12,3 +12,5 @@ build/ffmpeg-$(FFMPEG_VERSION)/build-base-all/ffbuild/config.mak: build/inst/bas
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/openh264.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-all/ffbuild/config.mak: build/inst/base/lib/pkgconfig/zlib.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/zlib.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-base-all/ffbuild/config.mak: build/inst/base/lib/pkgconfig/libwebp.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-thr-all/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libwebp.pc

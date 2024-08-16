@@ -106,6 +106,7 @@
 --enable-decoder=png
 --enable-encoder=png
 --enable-decoder=webp
+--enable-libwebp
 --enable-encoder=libwebp
 --enable-encoder=libwebp_anim
 --enable-demuxer=rawvideo

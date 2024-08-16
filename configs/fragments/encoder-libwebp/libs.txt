@@ -1,2 +1,1 @@
-build/inst/@TARGET/lib/libz.a
 build/inst/@TARGET/lib/libwebp.a

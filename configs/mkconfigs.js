@@ -37,7 +37,7 @@ const images = [
     "demuxer-image_gif_pipe", "demuxer-image_jpeg_pipe", "demuxer-image_png_pipe",
     "parser-mjpeg", "parser-png", "parser-gif", "parser-webp",
     "codec-gif", "codec-mjpeg", "codec-png",
-    "decoder-webp","encoder-libwebp","encoder-libwebp_anim"
+    "decoder-webp","encoder-libwebp"
 ];
 
 // all WAV formats under the sun
