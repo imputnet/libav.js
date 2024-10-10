@@ -48,41 +48,42 @@ if (/* We're in a worker */
             var fun = e.data[1];
             var args = e.data.slice(2);
             var ret = void 0;
-            var transfer = [];
             var succ = true;
+
+            function reply() {
+                var transfer = [];
+                if (ret && ret.libavjsTransfer)
+                    transfer = ret.libavjsTransfer
+                try {
+                    postMessage([id, fun, succ, ret], transfer);
+                } catch (ex) {
+                    try {
+                        ret = JSON.parse(JSON.stringify(
+                            ret, function(k, v) { return v; }
+                        ));
+                        postMessage([id, fun, succ, ret], transfer);
+                    } catch (ex) {
+                        postMessage([id, fun, succ, "" + ret]);
+                    }
+                }
+            }
+
             try {
                 ret = libav[fun].apply(libav, args);
             } catch (ex) {
                 succ = false;
                 ret = ex;
             }
-            if (succ && typeof ret === "object" && ret !== null && ret.then) {
+            if (succ && ret && ret.then) {
                 // Let the promise resolve
                 ret.then(function(res) {
                     ret = res;
                 }).catch(function(ex) {
                     succ = false;
                     ret = ex;
-                }).then(function() {
-                    if (typeof ret === "object" && ret && ret.libavjsTransfer)
-                        transfer = ret.libavjsTransfer;
-                    try {
-                        postMessage([id, fun, succ, ret], transfer);
-                    } catch (ex) {
-                        postMessage([id, fun, succ, "" + ret]);
-                    }
-                });
+                }).then(reply);
 
-            } else {
-                if (typeof ret === "object" && ret && ret.libavjsTransfer)
-                    transfer = ret.libavjsTransfer;
-                try {
-                    postMessage([id, fun, succ, ret], transfer);
-                } catch (ex) {
-                    postMessage([id, fun, succ, "" + ret]);
-                }
-
-            }
+            } else reply();
         };
 
         libav.onwrite = function(name, pos, buf) {
@@ -92,9 +93,14 @@ if (/* We're in a worker */
             postMessage(["onwrite", "onwrite", true, [name, pos, buf]], [buf.buffer]);
         };
 
+        libav.onread = function(name, pos, len) {
+            postMessage(["onread", "onread", true, [name, pos, len]]);
+        };
+
         libav.onblockread = function(name, pos, len) {
             postMessage(["onblockread", "onblockread", true, [name, pos, len]]);
         };
+
         postMessage(["onready", "onready", true, null]);
 
     }).catch(function(ex) {

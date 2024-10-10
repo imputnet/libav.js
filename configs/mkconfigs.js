@@ -106,13 +106,13 @@ const configsRaw = [
     // Audio sensible:
     ["default", [
         "format-ogg", "format-webm",
-        opus, flac, "format-wav",
+        opus, flac, "format-wav", "codec-pcm_f32le",
         "audio-filters"
     ], {cli: true}],
 
     ["opus", ["format-ogg", "format-webm", opus], {af: true}],
     ["flac", ["format-ogg", flac], {af: true}],
-    ["wav", ["format-wav"], {af: true}],
+    ["wav", ["format-wav", "codec-pcm_f32le"], {af: true}],
 
     // Audio silly:
     ["obsolete", [
@@ -121,7 +121,7 @@ const configsRaw = [
         opus, flac,
 
         // Timeless:
-        "format-wav",
+        "format-wav", "codec-pcm_f32le",
 
         // Obsolete:
         "codec-libvorbis", mp3,
@@ -136,7 +136,7 @@ const configsRaw = [
     // Video sensible:
     ["webm", [
         "format-ogg", "format-webm",
-        opus, flac, "format-wav",
+        opus, flac, "format-wav", "codec-pcm_f32le",
         "audio-filters",
 
         "libvpx", vp8,
@@ -154,7 +154,7 @@ const configsRaw = [
     // Mostly parsing:
     ["webcodecs", [
         "format-ogg", "format-webm", "format-mp4",
-        opus, flac, "format-wav",
+        opus, flac, "format-wav", "codec-pcm_f32le",
         "parser-aac",
 
         "parser-vp8", "parser-vp9", "parser-av1",

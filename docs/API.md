@@ -331,16 +331,19 @@ Free the things allocated by `ff_init_encoder`.
 ### `ff_init_decoder`
 ```
 ff_init_decoder(
-    name: string | number, codecpar?: number
+    name: string | number, config?: {
+        codecpar?: number | CodecParameters,
+        time_base?: [number, number]
+    }
 ): Promise<[number, number, number, number]>
 ```
 
 Initialize a decoder. `name` can be a string name (e.g. `"libopus"`) *or* an
 internal identifier. Usually, an internal identifier would come from a `Stream`
-from `ff_init_demuxer_file`, in which case `codecpar` would also come from that
-`Stream`.
+from `ff_init_demuxer_file`, in which case `codecpar` and `time_base` would also
+come from that `Stream`.
 
-Returns a *lot* of things, some of which aren't alwayys needed: `[codec, codec
+Returns a *lot* of things, some of which aren't always needed: `[codec, codec
 context (c), packet (pkt), frame]`. Usually called as `[, c, pkt, frame] =
 ff_init_decoder(...)`.
 
@@ -631,11 +634,11 @@ Runs the `ffmpeg` CLI tool. `args` can be each string argument to `ffmpeg`, or
 an array of strings, or any combination thereof. Returns `ffmpeg`'s exit code.
 
 NOTE: ffmpeg 6.0 and later require threads for the ffmpeg CLI. libav.js *does*
-support the ffmpeg CLI on unthreaded environments, but to do so, it uses an
-earlier version of the CLI, from 5.1.3. The libraries are still modern, and if
-running libav.js in threaded mode, the ffmpeg CLI is modern as well. As time
-passes, these two versions will drift apart, so make sure you know whether
-you're running in threaded mode or not!
+support the ffmpeg CLI on unthreaded environments, but to do so, it uses a
+thread compatibility layer,
+[emfiberthreads](https://github.com/Yahweasel/emfiberthreads). This is just a
+compatibility layer, and is expected not only to be slower than true
+multithreading, but to be slower than single-threaded operation.
 
 
 ### `ffprobe`

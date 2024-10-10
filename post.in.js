@@ -14,7 +14,23 @@
  */
 
 // A global promise chain for serialization of asyncify components
-Module.serializationPromise = Promise.all([]);
+var serializationPromise = null;
+
+function serially(f) {
+    var p;
+    if (serializationPromise) {
+        p = serializationPromise.catch(function(){}).then(function() {
+            return f();
+        });
+    } else {
+        p = f();
+    }
+    serializationPromise = p = p.finally(function() {
+        if (serializationPromise === p)
+            serializationPromise = null;
+    });
+    return p;
+}
 
 // A global error passed through filesystem operations
 Module.fsThrownError = null;
@@ -40,6 +56,23 @@ var readerCallbacks = {
 
     read: function(stream, buffer, offset, length, position) {
         var data = Module.readBuffers[stream.node.name];
+
+        if (!data || (data.buf.length === 0 && !data.eof)) {
+            if (Module.onread) {
+                try {
+                    var rr = Module.onread(stream.node.name, position, length);
+                    if (rr && rr.then && rr.catch) {
+                        rr.catch(function(ex) {
+                            ff_reader_dev_send(stream.node.name, null, {error: ex});
+                        });
+                    }
+                } catch (ex) {
+                    ff_reader_dev_send(stream.node.name, null, {error: ex});
+                }
+            }
+            data = Module.readBuffers[stream.node.name];
+        }
+
         if (!data)
             throw new FS.ErrnoError(ERRNO_CODES.EAGAIN);
         if (data.error) {
@@ -357,7 +390,7 @@ var preReadaheadOnBlockRead = null;
 function readaheadOnBlockRead(name, position, length) {
     if (!(name in readaheads)) {
         if (preReadaheadOnBlockRead)
-            preReadaheadOnBlockRead(name, position, length);
+            return preReadaheadOnBlockRead(name, position, length);
         return;
     }
 
@@ -438,7 +471,7 @@ Module.unlinkreadaheadfile = function(name) {
  * @param mode  Unix permissions
  */
 /// @types mkwriterdev@sync(name: string, mode?: number): @promise@void@
-Module.mkwriterdev = function(loc, mode) {
+var mkwriterdev = Module.mkwriterdev = function(loc, mode) {
     FS.mkdev(loc, mode?mode:0x1FF, writerDev);
     return 0;
 };
@@ -497,6 +530,94 @@ Module.unlinkworkerfsfile = function(name) {
     FS.unmount("/" + name + ".d");
     FS.rmdir("/" + name + ".d");
 };
+
+// FileSystemFileHandle devices
+var fsfhs = {};
+
+// Original onwrite
+var preFSFHOnWrite = null;
+
+// Passthru for FSFH writing.
+function fsfhOnWrite(name, position, buffer) {
+    if (!(name in fsfhs)) {
+        if (preFSFHOnWrite)
+            return preFSFHOnWrite(name, position, buffer);
+        return;
+    }
+
+    var h = fsfhs[name];
+    buffer = buffer.slice(0);
+
+    if (h.syncHandle) {
+        h.syncHandle.write(buffer.buffer, {
+            at: position
+        });
+        return;
+    }
+
+    var p = h.promise.then(function() {
+        return h.handle.write({
+            type: "write",
+            position: position,
+            data: buffer
+        });
+    });
+
+    h.promise = p.catch(console.error);
+    return p;
+}
+
+/**
+ * Make a FileSystemFileHandle device. This writes via a FileSystemFileHandle,
+ * synchronously if possible. Note that this overrides onwrite, so if you want
+ * to support both kinds of files, make sure you set onwrite before calling
+ * this.
+ * @param name  Filename to create.
+ * @param fsfh  FileSystemFileHandle corresponding to this filename.
+ */
+/// @types mkfsfhfile(name: string, fsfh: FileSystemFileHandle): Promise<void>
+Module.mkfsfhfile = function(name, fsfh) {
+    if (Module.onwrite !== fsfhOnWrite) {
+        preFSFHOnWrite = Module.onwrite;
+        Module.onwrite = fsfhOnWrite;
+    }
+
+    mkwriterdev(name);
+
+    var h = fsfhs[name] = {
+        promise: Promise.all([])
+    };
+    h.promise = h.promise.then(function() {
+        return fsfh.createSyncAccessHandle();
+    }).then(function(syncHandle) {
+        h.syncHandle = syncHandle;
+    }).catch(function() {
+        return fsfh.createWritable();
+    }).then(function(handle) {
+        h.handle = handle;
+    });
+    return h.promise;
+};
+
+/**
+ * Unlink a FileSystemFileHandle file. Also closes the file handle.
+ * @param name  Filename to unlink.
+ */
+/// @types unlinkfsfhfile(name: string): Promise<void>
+Module.unlinkfsfhfile = function(name) {
+    FS.unlink(name);
+    var h = fsfhs[name];
+    delete fsfhs[name];
+
+    if (h.syncHandle) {
+        h.syncHandle.close();
+        return Promise.all([]);
+    }
+
+    return h.promise.then(function() {
+        return h.handle.close();
+    });
+}
 
 /**
  * Send some data to a reader device. To indicate EOF, send null. To indicate an
@@ -610,6 +731,8 @@ var ff_block_reader_dev_send = Module.ff_block_reader_dev_send = function(name, 
 };
 
 /**
+ * @deprecated
+ * DEPRECATED. Use the onread callback.
  * Metafunction to determine whether any device has any waiters. This can be
  * used to determine whether more data needs to be sent before a previous step
  * will be fully resolved.
@@ -617,6 +740,7 @@ var ff_block_reader_dev_send = Module.ff_block_reader_dev_send = function(name, 
  */
 /// @types ff_reader_dev_waiting@sync(name?: string): @promise@boolean@
 var ff_reader_dev_waiting = Module.ff_reader_dev_waiting = function(name) {
+    console.log("[libav.js] ff_reader_dev_waiting is deprecated. Use the onread callback.");
     return ff_nothing().then(function() {
         if (name)
             return !!Module.ff_reader_dev_waiters[name];
@@ -705,14 +829,24 @@ var ff_init_encoder = Module.ff_init_encoder = function(name, opts) {
  * Similar to ff_init_encoder but doesn't need to initialize the frame.
  * Returns [AVCodec, AVCodecContext, AVPacket, AVFrame]
  * @param name  libav decoder identifier or name
- * @param codecpar  Optional AVCodecParameters
+ * @param config  Decoder configuration. Can just be a number for codec
+ *                parameters, or can be multiple configuration options.
  */
 /* @types
  * ff_init_decoder@sync(
- *     name: string | number, codecpar?: number
+ *     name: string | number, config?: number | {
+ *         codecpar?: number | CodecParameters,
+ *         time_base?: [number, number]
+ *     }
  * ): @promise@[number, number, number, number]@
  */
-var ff_init_decoder = Module.ff_init_decoder = function(name, codecpar) {
+var ff_init_decoder = Module.ff_init_decoder = function(name, config) {
+    if (typeof config === "number") {
+        config = {codecpar: config};
+    } else {
+        config = config || {};
+    }
+
     var codec, ret;
     if (typeof name === "string")
         codec = avcodec_find_decoder_by_name(name);
@@ -727,13 +861,29 @@ var ff_init_decoder = Module.ff_init_decoder = function(name, codecpar) {
 
     var codecid = AVCodecContext_codec_id(c);
 
-    if (codecpar) {
+    if (config.codecpar) {
+        var codecparPtr = 0;
+        var codecpar = config.codecpar;
+        if (typeof codecpar === "object") {
+            codecparPtr = avcodec_parameters_alloc();
+            if (codecparPtr === 0)
+                throw new Error("Failed to allocate codec parameters");
+            ff_copyin_codecpar(codecparPtr, codecpar);
+            codecpar = codecparPtr;
+        }
         ret = avcodec_parameters_to_context(c, codecpar);
+        if (codecparPtr)
+            avcodec_parameters_free_js(codecparPtr);
         if (ret < 0)
             throw new Error("Could not set codec parameters: " + ff_error(ret));
     }
-    // if it is not set, use the copy.
-    if (AVCodecContext_codec_id(c) === 0)  AVCodecContext_codec_id_s(c, codecid);
+
+    // If it is not set, use the copy.
+    if (AVCodecContext_codec_id(c) === 0) AVCodecContext_codec_id_s(c, codecid);
+
+    // Keep the time base
+    if (config.time_base)
+        AVCodecContext_time_base_s(c, config.time_base[0], config.time_base[1]);
 
     ret = avcodec_open2(c, codec, 0);
     if (ret < 0)
@@ -789,29 +939,75 @@ var ff_free_decoder = Module.ff_free_decoder = function(c, pkt, frame) {
  * @param frame  AVFrame
  * @param pkt  AVPacket
  * @param inFrames  Array of frames in libav.js format
- * @param fin  Set to true if this is the end of encoding
+ * @param config  Encoding options. May be "true" to indicate end of stream.
  */
 /* @types
  * ff_encode_multi@sync(
  *     ctx: number, frame: number, pkt: number, inFrames: (Frame | number)[],
- *     fin?: boolean
+ *     config?: boolean | {
+ *         fin?: boolean,
+ *         copyoutPacket?: "default"
+ *     }
  * ): @promise@Packet[]@
+ * ff_encode_multi@sync(
+ *     ctx: number, frame: number, pkt: number, inFrames: (Frame | number)[],
+ *     config: {
+ *         fin?: boolean,
+ *         copyoutPacket: "ptr"
+ *     }
+ * ): @promise@number[]@
  */
-var ff_encode_multi = Module.ff_encode_multi = function(ctx, frame, pkt, inFrames, fin) {
+var ff_encode_multi = Module.ff_encode_multi = function(ctx, frame, pkt, inFrames, config) {
+    if (typeof config === "boolean") {
+        config = {fin: config};
+    } else {
+        config = config || {};
+    }
+
     var outPackets = [];
     var tbNum = AVCodecContext_time_base_num(ctx);
     var tbDen = AVCodecContext_time_base_den(ctx);
 
+    var copyoutPacket = function(ptr) {
+        var ret = ff_copyout_packet(ptr);
+        if (!ret.time_base_num) {
+            ret.time_base_num = tbNum;
+            ret.time_base_den = tbDen;
+        }
+        return ret;
+    };
+
+    if (config.copyoutPacket === "ptr") {
+        copyoutPacket = function(ptr) {
+            var ret = ff_copyout_packet_ptr(ptr);
+            if (!AVPacket_time_base_num(ret))
+                AVPacket_time_base_s(ret, tbNum, tbDen);
+            return ret;
+        };
+    }
+
     function handleFrame(inFrame) {
         if (inFrame !== null) {
             ff_copyin_frame(frame, inFrame);
-            if (tbNum && typeof inFrame === "object" && inFrame.time_base_num) {
-                ff_frame_rescale_ts_js(
-                    frame,
-                    tbNum, tbDen,
-                    inFrame.time_base_num, inFrame.time_base_den
-                );
-                AVFrame_time_base_s(frame, tbNum, tbDen);
+            if (tbNum) {
+                if (typeof inFrame === "number") {
+                    var itbn = AVFrame_time_base_num(frame);
+                    if (itbn) {
+                        ff_frame_rescale_ts_js(
+                            frame,
+                            itbn, AVFrame_time_base_den(frame),
+                            tbNum, tbDen
+                        );
+                        AVFrame_time_base_s(frame, tbNum, tbDen);
+                    }
+                } else if (inFrame && inFrame.time_base_num) {
+                    ff_frame_rescale_ts_js(
+                        frame,
+                        inFrame.time_base_num, inFrame.time_base_den,
+                        tbNum, tbDen
+                    );
+                    AVFrame_time_base_s(frame, tbNum, tbDen);
+                }
             }
         }
 
@@ -828,21 +1024,14 @@ var ff_encode_multi = Module.ff_encode_multi = function(ctx, frame, pkt, inFrame
             else if (ret < 0)
                 throw new Error("Error encoding audio frame: " + ff_error(ret));
 
-            var outPacket = ff_copyout_packet(pkt);
-
-            if (!outPacket.time_base_num) {
-                outPacket.time_base_num = tbNum;
-                outPacket.time_base_den = tbDen;
-            }
-
-            outPackets.push(outPacket);
+            outPackets.push(copyoutPacket(pkt));
             av_packet_unref(pkt);
         }
     }
 
     inFrames.forEach(handleFrame);
 
-    if (fin)
+    if (config.fin)
         handleFrame(null);
 
     return outPackets;
@@ -868,7 +1057,7 @@ var ff_encode_multi = Module.ff_encode_multi = function(ctx, frame, pkt, inFrame
  * ): @promise@Frame[]@
  * ff_decode_multi@sync(
  *     ctx: number, pkt: number, frame: number, inPackets: (Packet | number)[],
- *     config?: boolean | {
+ *     config: {
  *         fin?: boolean,
  *         ignoreErrors?: boolean,
  *         copyoutFrame: "ptr"
@@ -876,7 +1065,7 @@ var ff_encode_multi = Module.ff_encode_multi = function(ctx, frame, pkt, inFrame
  * ): @promise@number[]@
  * ff_decode_multi@sync(
  *     ctx: number, pkt: number, frame: number, inPackets: (Packet | number)[],
- *     config?: boolean | {
+ *     config: {
  *         fin?: boolean,
  *         ignoreErrors?: boolean,
  *         copyoutFrame: "ImageData"
@@ -895,9 +1084,25 @@ var ff_decode_multi = Module.ff_decode_multi = function(ctx, pkt, frame, inPacke
     var tbNum = AVCodecContext_time_base_num(ctx);
     var tbDen = AVCodecContext_time_base_den(ctx);
 
-    var copyoutFrame = ff_copyout_frame;
+    var copyoutFrameO = ff_copyout_frame;
     if (config.copyoutFrame)
-        copyoutFrame = ff_copyout_frame_versions[config.copyoutFrame];
+        copyoutFrameO = ff_copyout_frame_versions[config.copyoutFrame];
+    var copyoutFrame = function(ptr) {
+        var ret = copyoutFrameO(ptr);
+        if (!ret.time_base_num) {
+            ret.time_base_num = tbNum;
+            ret.time_base_den = tbDen;
+        }
+        return ret;
+    };
+    if (config.copyoutFrame === "ptr") {
+        copyoutFrame = function(ptr) {
+            var ret = ff_copyout_frame_ptr(ptr);
+            if (!AVFrame_time_base_num(ret))
+                AVFrame_time_base_s(ret, tbNum, tbDen);
+            return ret;
+        };
+    }
 
     function handlePacket(inPacket) {
         var ret;
@@ -908,13 +1113,25 @@ var ff_decode_multi = Module.ff_decode_multi = function(ctx, pkt, frame, inPacke
                 throw new Error("Failed to make packet writable: " + ff_error(ret));
             ff_copyin_packet(pkt, inPacket);
 
-            if (inPacket.time_base_num && tbNum) {
-                av_packet_rescale_ts_js(
-                    pkt,
-                    inPacket.time_base_num, inPacket.time_base_den,
-                    tbNum, tbDen
-                );
-                AVPacket_time_base_s(pkt, tbNum, tbDen);
+            if (tbNum) {
+                if (typeof inPacket === "number") {
+                    var iptbn = AVPacket_time_base_num(pkt);
+                    if (iptbn) {
+                        av_packet_rescale_ts_js(
+                            pkt,
+                            iptbn, AVPacket_time_base_den(pkt),
+                            tbNum, tbDen
+                        );
+                        AVPacket_time_base_s(pkt, tbNum, tbDen);
+                    }
+                } else if (inPacket && inPacket.time_base_num) {
+                    av_packet_rescale_ts_js(
+                        pkt,
+                        inPacket.time_base_num, inPacket.time_base_den,
+                        tbNum, tbDen
+                    );
+                    AVPacket_time_base_s(pkt, tbNum, tbDen);
+                }
             }
         } else {
             av_packet_unref(pkt);
@@ -941,12 +1158,6 @@ var ff_decode_multi = Module.ff_decode_multi = function(ctx, pkt, frame, inPacke
                 throw new Error("Error decoding audio frame: " + ff_error(ret));
 
             var outFrame = copyoutFrame(frame);
-
-            if (typeof outFrame === "object" && !outFrame.time_base_num) {
-                outFrame.time_base_num = tbNum;
-                outFrame.time_base_den = tbDen;
-            }
-
             if (outFrame && outFrame.libavjsTransfer && outFrame.libavjsTransfer.length)
                 transfer.push.apply(transfer, outFrame.libavjsTransfer);
             outFrames.push(outFrame);
@@ -1069,10 +1280,7 @@ var ff_free_muxer = Module.ff_free_muxer = function(oc, pb) {
 function ff_init_demuxer_file(filename, fmt) {
     var fmt_ctx;
 
-    return Promise.all([]).then(function() {
-        return avformat_open_input_js(filename, fmt?fmt:null, null);
-
-    }).then(function(ret) {
+    return avformat_open_input_js(filename, fmt?fmt:null, null).then(function(ret) {
         fmt_ctx = ret;
         if (fmt_ctx === 0)
             throw new Error("Could not open source file");
@@ -1109,10 +1317,9 @@ function ff_init_demuxer_file(filename, fmt) {
 }
 Module.ff_init_demuxer_file = function() {
     var args = arguments;
-    Module.serializationPromise = Module.serializationPromise.catch(function(){}).then(function() {
+    return serially(function() {
         return ff_init_demuxer_file.apply(void 0, args);
     });
-    return Module.serializationPromise;
 };
 
 /**
@@ -1140,7 +1347,15 @@ var ff_write_multi = Module.ff_write_multi = function(oc, pkt, inPackets, interl
         ff_copyin_packet(pkt, inPacket);
 
         var sti = inPacket.stream_index || 0;
-        if (typeof inPacket === "object" && inPacket.time_base_num) {
+        var iptbNum, iptbDen;
+        if (typeof inPacket === "number") {
+            iptbNum = AVPacket_time_base_num(pkt);
+            iptbNum = AVPacket_time_base_den(pkt);
+        } else {
+            iptbNum = inPacket.time_base_num;
+            iptbDen = inPacket.time_base_den;
+        }
+        if (iptbNum) {
             var tb = tbs[sti];
             if (!tb) {
                 var str = AVFormatContext_streams_a(oc, sti);
@@ -1152,7 +1367,7 @@ var ff_write_multi = Module.ff_write_multi = function(oc, pkt, inPackets, interl
             if (tb[0]) {
                 av_packet_rescale_ts_js(
                     pkt,
-                    inPacket.time_base_num, inPacket.time_base_den,
+                    iptbNum, iptbDen,
                     tb[0], tb[1]
                 );
                 AVPacket_time_base_s(pkt, tb[0], tb[1]);
@@ -1185,7 +1400,7 @@ var ff_write_multi = Module.ff_write_multi = function(oc, pkt, inPackets, interl
  *     }
  * ): @promsync@[number, Record<number, Packet[]>]@
  * ff_read_frame_multi@sync(
- *     fmt_ctx: number, pkt: number, opts?: {
+ *     fmt_ctx: number, pkt: number, opts: {
  *         limit?: number, // OUTPUT limit, in bytes
  *         unify?: boolean, // If true, unify the packets into a single stream (called 0), so that the output is in the same order as the input
  *         copyoutPacket: "ptr" // Version of ff_copyout_packet to use
@@ -1207,11 +1422,8 @@ function ff_read_frame_multi(fmt_ctx, pkt, opts) {
         copyoutPacket = ff_copyout_packet_versions[opts.copyoutPacket];
 
     function step() {
-        return Promise.all([]).then(function() {
-            // Read the frame
-            return av_read_frame(fmt_ctx, pkt);
-
-        }).then(function(ret) {
+        // Read the frame
+        return av_read_frame(fmt_ctx, pkt).then(function(ret) {
             if (ret < 0)
                 return [ret, outPackets];
 
@@ -1220,7 +1432,15 @@ function ff_read_frame_multi(fmt_ctx, pkt, opts) {
             var stri = AVPacket_stream_index(pkt);
 
             // Get the time base correct
-            if (typeof packet === "object" && !packet.time_base_num) {
+            var ptbNum, ptbDen;
+            if (typeof packet === "number") {
+                ptbNum = AVPacket_time_base_num(packet);
+                ptbDen = AVPacket_time_base_den(packet);
+            } else {
+                ptbNum = packet.time_base_num;
+                ptbDen = packet.time_base_den;
+            }
+            if (!ptbNum) {
                 var tb = tbs[stri];
                 if (!tb) {
                     var str = AVFormatContext_streams_a(fmt_ctx, stri);
@@ -1229,8 +1449,12 @@ function ff_read_frame_multi(fmt_ctx, pkt, opts) {
                         AVStream_time_base_den(str)
                     ];
                 }
-                packet.time_base_num = tb[0];
-                packet.time_base_den = tb[1];
+                if (typeof packet === "number") {
+                    AVPacket_time_base_s(packet, tb[0], tb[1]);
+                } else {
+                    packet.time_base_num = tb[0];
+                    packet.time_base_den = tb[1];
+                }
             }
 
             // Put it in the output
@@ -1247,14 +1471,13 @@ function ff_read_frame_multi(fmt_ctx, pkt, opts) {
         });
     }
 
-    return Promise.all([]).then(step);
+    return step();
 }
 Module.ff_read_frame_multi = function() {
     var args = arguments;
-    Module.serializationPromise = Module.serializationPromise.catch(function(){}).then(function() {
+    return serially(function() {
         return ff_read_frame_multi.apply(void 0, args);
     });
-    return Module.serializationPromise;
 };
 
 /**
@@ -1271,14 +1494,14 @@ Module.ff_read_frame_multi = function() {
  */
 /* @types
  * ff_read_multi@sync(
- *     fmt_ctx: number, pkt: number, devfile?: string, opts?: {
+ *     fmt_ctx: number, pkt: number, devfile?: string | null, opts?: {
  *         limit?: number, // OUTPUT limit, in bytes
  *         unify?: boolean, // If true, unify the packets into a single stream (called 0), so that the output is in the same order as the input
  *         copyoutPacket?: "default" // Version of ff_copyout_packet to use
  *     }
  * ): @promsync@[number, Record<number, Packet[]>]@
  * ff_read_multi@sync(
- *     fmt_ctx: number, pkt: number, devfile?: string, opts?: {
+ *     fmt_ctx: number, pkt: number, devfile: string | null, opts: {
  *         limit?: number, // OUTPUT limit, in bytes
  *         devLimit?: number, // INPUT limit, in bytes (don't read if less than this much data is available)
  *         unify?: boolean, // If true, unify the packets into a single stream (called 0), so that the output is in the same order as the input
@@ -1328,7 +1551,7 @@ Module.ff_read_multi = function(fmt_ctx, pkt, devfile, opts) {
 var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr, input, output) {
     var buffersrc, abuffersrc, buffersink, abuffersink, filter_graph,
         tmp_src_ctx, tmp_sink_ctx, src_ctxs, sink_ctxs, io_outputs, io_inputs,
-        int32s, int64s;
+        int32s;
     var instr, outstr;
 
     var multiple_inputs = !!input.length;
@@ -1391,7 +1614,7 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
                     "time_base=" + time_base[0] + "/" + time_base[1] +
                     ":sample_rate=" + sample_rate +
                     ":sample_fmt=" + (input.sample_fmt?input.sample_fmt:3/*FLT*/) +
-                    ":channel_layout=" + (input.channel_layout?input.channel_layout:4/*MONO*/),
+                    ":channel_layout=0x" + (input.channel_layout?input.channel_layout:4/*MONO*/).toString(16),
                     null, filter_graph);
 
             }
@@ -1463,18 +1686,18 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
                     output.sample_fmt?output.sample_fmt:3/*FLT*/, -1,
                     output.sample_rate?output.sample_rate:48000, -1
                 ]);
-                int64s = ff_malloc_int64_list([
-                    output.channel_layout?output.channel_layout:4/*MONO*/, -1
-                ]);
-                if (int32s === 0 || int64s === 0)
+                if (int32s === 0)
                     throw new Error("Failed to transfer parameters");
+                var ch_layout = output.channel_layout?output.channel_layout:4;
+                var ch_layout_i64 = [~~ch_layout, Math.floor(ch_layout / 0x100000000)];
 
                 if (
                     av_opt_set_int_list_js(
                         tmp_sink_ctx, "sample_fmts", 4, int32s, -1, 1 /* AV_OPT_SEARCH_CHILDREN */
                     ) < 0 ||
-                    av_opt_set_int_list_js(
-                        tmp_sink_ctx, "channel_layouts", 8, int64s, -1, 1
+                    ff_buffersink_set_ch_layout(
+                        tmp_sink_ctx,
+                        ch_layout_i64[0], ch_layout_i64[1]
                     ) < 0 ||
                     av_opt_set_int_list_js(
                         tmp_sink_ctx, "sample_rates", 4, int32s + 8, -1, 1
@@ -1485,8 +1708,6 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
                 }
                 free(int32s);
                 int32s = 0;
-                free(int64s);
-                int64s = 0;
 
             }
 
@@ -1529,7 +1750,6 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
         if (tmp_src_ctx) avfilter_free(tmp_src_ctx);
         if (tmp_sink_ctx) avfilter_free(tmp_sink_ctx);
         if (int32s) free(int32s);
-        if (int64s) free(int64s);
         if (instr) free(instr);
         if (outstr) free(outstr);
         throw ex;
@@ -1566,28 +1786,28 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
  * ): @promise@Frame[]@
  * ff_filter_multi@sync(
  *     srcs: number, buffersink_ctx: number, framePtr: number,
- *     inFrames: (Frame | number)[], config?: boolean | {
+ *     inFrames: (Frame | number)[], config: {
  *         fin?: boolean,
  *         copyoutFrame: "ptr"
  *     }
  * ): @promise@number[]@;
  * ff_filter_multi@sync(
  *     srcs: number[], buffersink_ctx: number, framePtr: number,
- *     inFrames: (Frame | number)[][], config?: boolean[] | {
+ *     inFrames: (Frame | number)[][], config: {
  *         fin?: boolean,
  *         copyoutFrame: "ptr"
  *     }[]
  * ): @promise@number[]@
  * ff_filter_multi@sync(
  *     srcs: number, buffersink_ctx: number, framePtr: number,
- *     inFrames: (Frame | number)[], config?: boolean | {
+ *     inFrames: (Frame | number)[], config: {
  *         fin?: boolean,
  *         copyoutFrame: "ImageData"
  *     }
  * ): @promise@ImageData[]@;
  * ff_filter_multi@sync(
  *     srcs: number[], buffersink_ctx: number, framePtr: number,
- *     inFrames: (Frame | number)[][], config?: boolean[] | {
+ *     inFrames: (Frame | number)[][], config: {
  *         fin?: boolean,
  *         copyoutFrame: "ImageData"
  *     }[]
@@ -1632,13 +1852,15 @@ var ff_filter_multi = Module.ff_filter_multi = function(srcs, buffersink_ctx, fr
                 break;
             if (ret < 0)
                 throw new Error("Error while receiving a frame from the filtergraph: " + ff_error(ret));
+
+            if (tbNum < 0) {
+                tbNum = av_buffersink_get_time_base_num(buffersink_ctx);
+                tbDen = av_buffersink_get_time_base_den(buffersink_ctx);
+            }
+
             var outFrame = copyoutFrame(framePtr);
 
             if (tbNum && typeof outFrame === "object" && !outFrame.time_base_num) {
-                if (tbNum < 0) {
-                    tbNum = av_buffersink_get_time_base_num(buffersink_ctx);
-                    tbDen = av_buffersink_get_time_base_den(buffersink_ctx);
-                }
                 outFrame.time_base_num = tbNum;
                 outFrame.time_base_den = tbDen;
             }
@@ -1650,15 +1872,37 @@ var ff_filter_multi = Module.ff_filter_multi = function(srcs, buffersink_ctx, fr
         }
     }
 
+    // Choose a frame copier per stream
+    var copyoutFrames = [];
+    for (var ti = 0; ti < inFrames.length; ti++) (function(ti) {
+        var copyoutFrameO = ff_copyout_frame;
+        if (config[ti].copyoutFrame)
+            copyoutFrameO = ff_copyout_frame_versions[config[ti].copyoutFrame];
+        var copyoutFrame = function(ptr) {
+            var ret = copyoutFrameO(ptr);
+            if (!ret.time_base_num) {
+                ret.time_base_num = tbNum;
+                ret.time_base_den = tbDen;
+            }
+            return ret;
+        };
+        if (config[ti].copyoutFrame === "ptr") {
+            copyoutFrame = function(ptr) {
+                var ret = ff_copyout_frame_ptr(ptr);
+                if (!AVFrame_time_base_num(ret))
+                    AVFrame_time_base_s(ret, tbNum, tbDen);
+                return ret;
+            };
+        }
+        copyoutFrames.push(copyoutFrame);
+    })(ti);
+
     // Handle in *frame* order
     for (var fi = 0; fi <= max; fi++) {
         for (var ti = 0; ti < inFrames.length; ti++) {
             var inFrame = inFrames[ti][fi];
-            var copyoutFrame = ff_copyout_frame;
-            if (config[ti].copyoutFrame)
-                copyoutFrame = ff_copyout_frame_versions[config[ti].copyoutFrame];
-            if (inFrame) handleFrame(srcs[ti], inFrame, copyoutFrame);
-            else if (config[ti].fin) handleFrame(srcs[ti], null, copyoutFrame);
+            if (inFrame) handleFrame(srcs[ti], inFrame, copyoutFrames[ti]);
+            else if (config[ti].fin) handleFrame(srcs[ti], null, copyoutFrames[ti]);
         }
     }
 
@@ -1691,7 +1935,7 @@ var ff_filter_multi = Module.ff_filter_multi = function(srcs, buffersink_ctx, fr
  * ff_decode_filter_multi@sync(
  *     ctx: number, buffersrc_ctx: number, buffersink_ctx: number, pkt: number,
  *     frame: number, inPackets: (Packet | number)[],
- *     config?: boolean | {
+ *     config: {
  *         fin?: boolean,
  *         ignoreErrors?: boolean,
  *         copyoutFrame: "ptr"
@@ -1700,7 +1944,7 @@ var ff_filter_multi = Module.ff_filter_multi = function(srcs, buffersink_ctx, fr
  * ff_decode_filter_multi@sync(
  *     ctx: number, buffersrc_ctx: number, buffersink_ctx: number, pkt: number,
  *     frame: number, inPackets: (Packet | number)[],
- *     config?: boolean | {
+ *     config: {
  *         fin?: boolean,
  *         ignoreErrors?: boolean,
  *         copyoutFrame: "ImageData"
@@ -2349,6 +2593,71 @@ var ff_copyin_side_data = Module.ff_copyin_side_data = function(pktPtr, side_dat
             throw new Error("Failed to allocate side data!");
         copyin_u8(data, elem.data);
     });
+};
+
+/**
+ * Copy out codec parameters.
+ * @param codecpar  AVCodecParameters
+ */
+/// @types ff_copyout_codecpar@sync(codecpar: number): @promise@CodecParameters@
+var ff_copyout_codecpar = Module.ff_copyout_codecpar = function(codecpar) {
+    return {
+        bit_rate: AVCodecParameters_bit_rate(codecpar),
+        channel_layoutmask: AVCodecParameters_channel_layoutmask(codecpar),
+        channels: AVCodecParameters_channels(codecpar),
+        chroma_location: AVCodecParameters_chroma_location(codecpar),
+        codec_id: AVCodecParameters_codec_id(codecpar),
+        codec_tag: AVCodecParameters_codec_tag(codecpar),
+        codec_type: AVCodecParameters_codec_type(codecpar),
+        color_primaries: AVCodecParameters_color_primaries(codecpar),
+        color_range: AVCodecParameters_color_range(codecpar),
+        color_space: AVCodecParameters_color_space(codecpar),
+        color_trc: AVCodecParameters_color_trc(codecpar),
+        format: AVCodecParameters_format(codecpar),
+        height: AVCodecParameters_height(codecpar),
+        level: AVCodecParameters_level(codecpar),
+        profile: AVCodecParameters_profile(codecpar),
+        sample_rate: AVCodecParameters_sample_rate(codecpar),
+        width: AVCodecParameters_width(codecpar),
+        extradata: ff_copyout_codecpar_extradata(codecpar)
+    };
+};
+
+// Copy out codec parameter extradata. Used internally by ff_copyout_codecpar.
+var ff_copyout_codecpar_extradata = Module.ff_copyout_codecpar_extradata = function(codecpar) {
+    var extradata = AVCodecParameters_extradata(codecpar);
+    var extradata_size = AVCodecParameters_extradata_size(codecpar);
+    if (!extradata || !extradata_size) return null;
+    return copyout_u8(extradata, extradata_size);
+};
+
+/**
+ * Copy in codec parameters.
+ * @param codecparPtr  AVCodecParameters
+ * @param codecpar  Codec parameters to copy in.
+ */
+/// @types ff_copyin_codecpar@sync(codecparPtr: number, codecpar: CodecParameters): @promise@void@
+var ff_copyin_codecpar = Module.ff_copyin_codecpar = function(codecparPtr, codecpar) {
+    [
+        "bit_rate", "channel_layoutmask", "channels", "chroma_location",
+        "codec_id", "codec_tag", "codec_type", "color_primaries", "color_range",
+        "color_space", "color_trc", "format", "height", "level", "profile",
+        "sample_rate", "width"
+    ].forEach(function(key) {
+        if (key in codecpar)
+            CAccessors["AVCodecParameters_" + key + "_s"](codecparPtr, codecpar[key]);
+    });
+
+    if (codecpar.extradata)
+        ff_copyin_codecpar_extradata(codecparPtr, codecpar.extradata);
+};
+
+// Copy in codec parameter extradata. Used internally by ff_copyin_codecpar.
+var ff_copyin_codecpar_extradata = Module.ff_copyin_codecpar_extradata = function(codecparPtr, extradata) {
+    var extradataPtr = malloc(extradata.length);
+    copyin_u8(extradataPtr, extradata);
+    AVCodecParameters_extradata_s(codecparPtr, extradataPtr);
+    AVCodecParameters_extradata_size_s(codecparPtr, extradata.length);
 };
 
 /**

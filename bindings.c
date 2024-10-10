@@ -53,6 +53,13 @@
     void struc ## _ ## field ## _den_s(struc *a, int b) { a->field.den = b; } \
     void struc ## _ ## field ## _s(struc *a, int n, int d) { a->field.num = n; a->field.den = d; }
 
+#define RAT_FAKE(struc, field, num, den) \
+    int struc ## _ ## field ## _num(struc *a) { (void) a; return num; } \
+    int struc ## _ ## field ## _den(struc *a) { (void) a; return den; } \
+    void struc ## _ ## field ## _num_s(struc *a, int b) { (void) a; (void) b; } \
+    void struc ## _ ## field ## _den_s(struc *a, int b) { (void) a; (void) b; } \
+    void struc ## _ ## field ## _s(struc *a, int n, int d) { (void) a; (void) n; (void) d; }
+
 
 /* Not part of libav, just used to ensure a round trip to C for async purposes */
 void ff_nothing() {}
@@ -85,7 +92,12 @@ B(int, width)
 #undef BA
 
 RAT(AVFrame, sample_aspect_ratio)
+
+#if LIBAVUTIL_VERSION_INT > AV_VERSION_INT(57, 10, 101)
 RAT(AVFrame, time_base)
+#else
+RAT_FAKE(AVFrame, time_base, 1, 1000)
+#endif
 
 /* Either way we expose the old channel layout API, but if the new channel
  * layout API is available, we use it */
@@ -220,9 +232,11 @@ int av_opt_set_int_list_js(void *obj, const char *name, int width, void *val, in
 /* AVCodec */
 #define B(type, field) A(AVCodec, type, field)
 #define BA(type, field) AA(AVCodec, type, field)
-B(enum AVSampleFormat *, sample_fmts)
+B(const char *, name)
+B(const char *, long_name)
+B(const enum AVSampleFormat *, sample_fmts)
 BA(enum AVSampleFormat, sample_fmts)
-B(int *, supported_samplerates)
+B(const int *, supported_samplerates)
 BA(int, supported_samplerates)
 B(enum AVMediaType, type)
 #undef B
@@ -263,9 +277,9 @@ CHL(AVCodecContext)
 /* AVCodecDescriptor */
 #define B(type, field) A(AVCodecDescriptor, type, field)
 B(enum AVCodecID, id)
-B(char *, long_name)
-AA(AVCodecDescriptor, char *, mime_types)
-B(char *, name)
+B(const char *, long_name)
+AA(AVCodecDescriptor, const char *, mime_types)
+B(const char *, name)
 B(int, props)
 B(enum AVMediaType, type)
 #undef B
@@ -291,7 +305,12 @@ B(enum AVChromaLocation, chroma_location)
 B(int, sample_rate)
 #undef B
 
+#if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(60, 10, 100)
 RAT(AVCodecParameters, framerate)
+#else
+RAT_FAKE(AVCodecParameters, framerate, 60, 1)
+#endif
+
 CHL(AVCodecParameters)
 
 
@@ -311,7 +330,11 @@ B(int, stream_index)
 #undef B
 #undef BL
 
+#if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(59, 4, 100)
 RAT(AVPacket, time_base)
+#else
+RAT_FAKE(AVPacket, time_base, 1, 1000)
+#endif
 
 
 /* AVPacketSideData uses special accessors because it's usually an array */
@@ -354,7 +377,7 @@ void av_packet_rescale_ts_js(
 #define BA(type, field) AA(AVFormatContext, type, field)
 B(int, flags)
 B(unsigned int, nb_streams)
-B(struct AVOutputFormat *, oformat)
+B(const struct AVOutputFormat *, oformat)
 B(AVIOContext *, pb)
 BA(AVStream *, streams)
 #undef B
@@ -391,7 +414,7 @@ int avformat_seek_file_approx(
 
 
 /****************************************************************
- * avfilter
+ * libavfilter
  ***************************************************************/
 
 /* AVFilterInOut */
@@ -410,6 +433,23 @@ int av_buffersink_get_time_base_num(const AVFilterContext *ctx) {
 int av_buffersink_get_time_base_den(const AVFilterContext *ctx) {
     return av_buffersink_get_time_base(ctx).den;
 }
+
+#if LIBAVFILTER_VERSION_INT > AV_VERSION_INT(8, 27, 100)
+int ff_buffersink_set_ch_layout(AVFilterContext *ctx, unsigned int layoutlo, unsigned int layouthi) {
+    uint64_t layout;
+    char layoutStr[20];
+    layout = ((uint64_t) layouthi << 32) | ((uint64_t) layoutlo);
+    sprintf(layoutStr, "0x%llx", layout);
+    return av_opt_set(ctx, "ch_layouts", layoutStr, AV_OPT_SEARCH_CHILDREN);
+}
+#else
+int ff_buffersink_set_ch_layout(AVFilterContext *ctx, unsigned int layoutlo, unsigned int layouthi) {
+    uint64_t layout[2];
+    layout[0] = ((uint64_t) layouthi << 32) | ((uint64_t) layoutlo);
+    layout[1] = -1;
+    return av_opt_set_int_list(ctx, "channel_layouts", layout, -1, AV_OPT_SEARCH_CHILDREN);
+}
+#endif
 
 
 /****************************************************************
@@ -518,6 +558,9 @@ pthread_t libavjs_create_main_thread()
         return NULL;
     return ret;
 }
+
+// Just to make sure this export is defined
+void emfiberthreads_timeout_expiry() {}
 
 #else
 void *libavjs_create_main_thread() { return NULL; }

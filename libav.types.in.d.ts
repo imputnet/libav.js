@@ -205,6 +205,80 @@ export interface Stream {
 }
 
 /**
+ * Codec parameters, if copied out.
+ */
+export interface CodecParameters {
+    /**
+     * General type of the encoded data.
+     */
+    codec_type: number;
+
+    /**
+     * Specific type of the encoded data (the codec used).
+     */
+    codec_id: number;
+
+    /**
+     * Additional information about the codec (corresponds to the AVI FOURCC).
+     */
+    codec_tag?: number;
+
+    /**
+     * Extra binary data needed for initializing the decoder, codec-dependent.
+     *
+     * Must be allocated with av_malloc() and will be freed by
+     * avcodec_parameters_free(). The allocated size of extradata must be at
+     * least extradata_size + AV_INPUT_BUFFER_PADDING_SIZE, with the padding
+     * bytes zeroed.
+     */
+    extradata?: Uint8Array;
+
+    /**
+     * - video: the pixel format, the value corresponds to enum AVPixelFormat.
+     * - audio: the sample format, the value corresponds to enum AVSampleFormat.
+     */
+    format: number;
+
+    /**
+     * Bitrate. Not always set.
+     */
+    bit_rate?: number;
+    bit_ratehi?: number;
+
+    /**
+     * Codec-specific bitstream restrictions that the stream conforms to.
+     */
+    profile?: number;
+    level?: number;
+
+    /**
+     * Video only. The dimensions of the video frame in pixels.
+     */
+    width?: number;
+    height?: number;
+
+    /**
+     * Video only. Additional colorspace characteristics.
+     */
+    color_range?: number;
+    color_primaries?: number;
+    color_trc?: number;
+    color_space?: number;
+    chroma_location?: number;
+
+    /**
+     * Audio only. The number of audio samples per second.
+     */
+    sample_rate?: number;
+
+    /**
+     * Audio only. The channel layout and number of channels.
+     */
+    channel_layoutmask?: number;
+    channels?: number;
+}
+
+/**
  * Settings used to set up a filter.
  */
 export interface FilterIOSettings {
@@ -542,7 +616,12 @@ export interface LibAV extends LibAVStatic {
     onwrite?: (filename: string, position: number, buffer: Uint8Array | Int8Array) => void;
 
     /**
-     * Callback for bock reader devices. Set by the user.
+     * Callback for stream reader devices. Set by the user.
+     */
+    onread?: (filename: string, pos: number, length: number) => void;
+
+    /**
+     * Callback for block reader devices. Set by the user.
      */
     onblockread?: (filename: string, pos: number, length: number) => void;
 

@@ -1,0 +1,25 @@
+Index: ffmpeg-6.1.2/configure
+===================================================================
+--- ffmpeg-6.1.2.orig/configure
++++ ffmpeg-6.1.2/configure
+@@ -3899,7 +3899,7 @@ avfilter_extralibs="pthreads_extralibs"
+ avutil_extralibs="d3d11va_extralibs mediacodec_extralibs nanosleep_extralibs pthreads_extralibs vaapi_drm_extralibs vaapi_x11_extralibs vaapi_win32_extralibs vdpau_x11_extralibs"
+ 
+ # programs
+-ffmpeg_deps="avcodec avfilter avformat threads"
++ffmpeg_deps="avcodec avfilter avformat"
+ ffmpeg_select="aformat_filter anull_filter atrim_filter format_filter
+                hflip_filter null_filter
+                transpose_filter trim_filter vflip_filter"
+@@ -6606,7 +6606,10 @@ fi
+ # check for some common methods of building with pthread support
+ # do this before the optional library checks as some of them require pthreads
+ if ! disabled pthreads && ! enabled w32threads && ! enabled os2threads; then
+-    if check_lib pthreads pthread.h pthread_join   -pthread &&
++    if check_lib pthreads pthread.h pthread_join -lemfiberthreads &&
++       check_lib pthreads pthread.h pthread_create -lemfiberthreads; then
++        add_cflags -lemfiberthreads
++    elif check_lib pthreads pthread.h pthread_join   -pthread &&
+        check_lib pthreads pthread.h pthread_create -pthread; then
+         add_cflags -pthread
+     elif check_lib pthreads pthread.h pthread_join   -pthreads &&

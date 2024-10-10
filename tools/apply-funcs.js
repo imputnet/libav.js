@@ -46,6 +46,8 @@ function decls(f, meta) {
             f(`${decl}_den`, "getter");
             f(`${decl}_den_s`, "setter");
             f(`${decl}_s`, "setter");
+        } else if (field && field.string) {
+            f(decl, "getter");
         } else {
             f(decl, "getter");
             f(decl+"_s", "setter");
@@ -104,10 +106,10 @@ function decls(f, meta) {
             // Need to serialize async functions
             outp += `Module.${decl[0]} = function() { ` +
                 "var args = arguments; " +
-                "Module.serializationPromise = Module.serializationPromise.catch(function(){}).then(function() { " +
+                "return serially(function() { " +
                 `return ${decl[0]}.apply(void 0, args); ` +
                 "}); " +
-                "return Module.serializationPromise; };\n";
+                "};\n";
         }
     });
     accessors((decl, field) => {
@@ -136,6 +138,12 @@ function decls(f, meta) {
                 `Module.${decl}_s = ` +
                 `CAccessors.${decl}_s = ` +
                 `Module.cwrap(${s(decl+"_s")}, null, ["number", "number", "number"]);\n`;
+
+        } else if (field && field.string) {
+            outp += `var ${decl} = ` +
+                `Module.${decl} = ` +
+                `CAccessors.${decl} = ` +
+                `Module.cwrap(${s(decl)}, "string", ["number"]);\n`;
 
         } else {
             outp += `var ${decl} = ` +
@@ -260,6 +268,8 @@ function decls(f, meta) {
                 signature(`${decl}_${part}_s`, "ptr: number, val: number", "void");
             }
             signature(`${decl}_s`, "ptr: number, num: number, den: number", "void");
+        } else if (field && field.string) {
+            signature(decl, "ptr: number", "string");
         } else {
             signature(decl, "ptr: number", "number");
             signature(`${decl}_s`, "ptr: number, val: number", "void");
@@ -358,7 +368,7 @@ function decls(f, meta) {
 
 // exports.json
 (function() {
-    var outp = [];
+    var outp = ["_emfiberthreads_timeout_expiry"];
     decls((decl) => {
         outp.push("_" + decl);
     });

@@ -103,7 +103,7 @@ const formats = await (async function() {
     const ret = [];
     for (; li < lines.length; li++) {
         const line = lines[li];
-        const parts = /^ (.)(.) ([^ ]*)/.exec(line);
+        const parts = /^ (.)(.) *([^ ]*)/.exec(line);
         if (!parts)
             continue;
 
@@ -123,7 +123,7 @@ for (const cv of encoders.video) {
     if (!h.options.includeSlow)
         break;
 
-    // Even in slow-mode, skip VP9 and AV1, because they're just too slow!
+    // Even in slow-mode, skip VP9, and AV1, because they're just too slow!
     if (cv === "libvpx-vp9" || cv === "libaom-av1" || cv === "libsvtav1")
         continue;
 
