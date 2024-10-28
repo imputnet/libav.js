@@ -7,14 +7,14 @@ FFMPEG_VERSION_MAJOR=7
 FFMPEG_VERSION_MINREV=1
 FFMPEG_VERSION=$(FFMPEG_VERSION_MAJOR).$(FFMPEG_VERSION_MINREV)
 LIBAVJS_VERSION_SUFFIX=
-LIBAVJS_VERSION_BASE=6.1
+LIBAVJS_VERSION_BASE=6.4
 LIBAVJS_VERSION=$(LIBAVJS_VERSION_BASE).$(FFMPEG_VERSION)$(LIBAVJS_VERSION_SUFFIX)
 LIBAVJS_VERSION_SHORT=$(LIBAVJS_VERSION_BASE).$(FFMPEG_VERSION_MAJOR)
 EMCC=emcc
 MINIFIER=node_modules/.bin/terser
 OPTFLAGS=-Oz
-NOTHRFLAGS=-Lbuild/inst/base/lib -lemfiberthreads
-THRFLAGS=-pthread
+EMFTFLAGS=-Lbuild/inst/base/lib -lemfiberthreads
+THRFLAGS=-pthread $(EMFTFLAGS)
 ES6FLAGS=-sEXPORT_ES6=1 -sUSE_ES6_IMPORT_META=1
 EFLAGS=\
 	`tools/memory-init-file-emcc.sh` \
@@ -166,13 +166,8 @@ dist/libav-$(LIBAVJS_VERSION)-%.asm.js: build/ffmpeg-$(FFMPEG_VERSION)/build-bas
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/configs/$(*)/libs.txt` \
-		$(NOTHRFLAGS) -s WASM=0 \
+		$(EMFTFLAGS) -s WASM=0 \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.js
 	if [ -e $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.wasm.map ] ; then \
 		./tools/adjust-sourcemap.js $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.wasm.map \
@@ -187,7 +182,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.asm.js: build/ffmpeg-$(FFMPEG_VERSION)/build-bas
 		s/@TARGET/asm/g ; \
 		s/@DBG//g ; \
 		s/@JS/js/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.js | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.js | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.js
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -235,13 +230,8 @@ dist/libav-$(LIBAVJS_VERSION)-%.asm.mjs: build/ffmpeg-$(FFMPEG_VERSION)/build-ba
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/configs/$(*)/libs.txt` \
-		$(NOTHRFLAGS) $(ES6FLAGS) -s WASM=0 \
+		$(EMFTFLAGS) $(ES6FLAGS) -s WASM=0 \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.mjs
 	if [ -e $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.wasm.map ] ; then \
 		./tools/adjust-sourcemap.js $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.wasm.map \
@@ -256,7 +246,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.asm.mjs: build/ffmpeg-$(FFMPEG_VERSION)/build-ba
 		s/@TARGET/asm/g ; \
 		s/@DBG//g ; \
 		s/@JS/mjs/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.mjs | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.mjs | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).asm.mjs
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -304,13 +294,8 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.asm.js: build/ffmpeg-$(FFMPEG_VERSION)/build
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/configs/$(*)/libs.txt` \
-		$(NOTHRFLAGS) -g2 -s WASM=0 \
+		$(EMFTFLAGS) -g2 -s WASM=0 \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.js
 	if [ -e $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.wasm.map ] ; then \
 		./tools/adjust-sourcemap.js $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.wasm.map \
@@ -325,7 +310,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.asm.js: build/ffmpeg-$(FFMPEG_VERSION)/build
 		s/@TARGET/asm/g ; \
 		s/@DBG/dbg./g ; \
 		s/@JS/js/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.js | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.js | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.js
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -373,13 +358,8 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.asm.mjs: build/ffmpeg-$(FFMPEG_VERSION)/buil
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/configs/$(*)/libs.txt` \
-		$(NOTHRFLAGS) -g2 $(ES6FLAGS) -s WASM=0 \
+		$(EMFTFLAGS) -g2 $(ES6FLAGS) -s WASM=0 \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.mjs
 	if [ -e $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.wasm.map ] ; then \
 		./tools/adjust-sourcemap.js $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.wasm.map \
@@ -394,7 +374,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.asm.mjs: build/ffmpeg-$(FFMPEG_VERSION)/buil
 		s/@TARGET/asm/g ; \
 		s/@DBG/dbg./g ; \
 		s/@JS/mjs/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.mjs | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.mjs | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.asm.mjs
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -443,13 +423,8 @@ dist/libav-$(LIBAVJS_VERSION)-%.wasm.js: build/ffmpeg-$(FFMPEG_VERSION)/build-ba
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/configs/$(*)/libs.txt` \
-		$(NOTHRFLAGS) \
+		$(EMFTFLAGS) \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.js
 	if [ -e $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.wasm.map ] ; then \
 		./tools/adjust-sourcemap.js $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.wasm.map \
@@ -464,7 +439,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.wasm.js: build/ffmpeg-$(FFMPEG_VERSION)/build-ba
 		s/@TARGET/wasm/g ; \
 		s/@DBG//g ; \
 		s/@JS/js/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.js | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.js | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.js
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -512,13 +487,8 @@ dist/libav-$(LIBAVJS_VERSION)-%.wasm.mjs: build/ffmpeg-$(FFMPEG_VERSION)/build-b
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/configs/$(*)/libs.txt` \
-		$(NOTHRFLAGS) $(ES6FLAGS) \
+		$(EMFTFLAGS) $(ES6FLAGS) \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.mjs
 	if [ -e $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.wasm.map ] ; then \
 		./tools/adjust-sourcemap.js $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.wasm.map \
@@ -533,7 +503,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.wasm.mjs: build/ffmpeg-$(FFMPEG_VERSION)/build-b
 		s/@TARGET/wasm/g ; \
 		s/@DBG//g ; \
 		s/@JS/mjs/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.mjs | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.mjs | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).wasm.mjs
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -581,13 +551,8 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.wasm.js: build/ffmpeg-$(FFMPEG_VERSION)/buil
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/configs/$(*)/libs.txt` \
-		$(NOTHRFLAGS) -gsource-map \
+		$(EMFTFLAGS) -gsource-map \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.js
 	if [ -e $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.wasm.map ] ; then \
 		./tools/adjust-sourcemap.js $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.wasm.map \
@@ -602,7 +567,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.wasm.js: build/ffmpeg-$(FFMPEG_VERSION)/buil
 		s/@TARGET/wasm/g ; \
 		s/@DBG/dbg./g ; \
 		s/@JS/js/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.js | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.js | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.js
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -650,13 +615,8 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.wasm.mjs: build/ffmpeg-$(FFMPEG_VERSION)/bui
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/configs/$(*)/libs.txt` \
-		$(NOTHRFLAGS) -gsource-map $(ES6FLAGS) \
+		$(EMFTFLAGS) -gsource-map $(ES6FLAGS) \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.mjs
 	if [ -e $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.wasm.map ] ; then \
 		./tools/adjust-sourcemap.js $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.wasm.map \
@@ -671,7 +631,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.wasm.mjs: build/ffmpeg-$(FFMPEG_VERSION)/bui
 		s/@TARGET/wasm/g ; \
 		s/@DBG/dbg./g ; \
 		s/@JS/mjs/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.mjs | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.mjs | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.wasm.mjs
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -720,11 +680,6 @@ dist/libav-$(LIBAVJS_VERSION)-%.thr.js: build/ffmpeg-$(FFMPEG_VERSION)/build-thr
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/thr/' configs/configs/$(*)/libs.txt` \
 		$(THRFLAGS) -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).thr.js
@@ -741,7 +696,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.thr.js: build/ffmpeg-$(FFMPEG_VERSION)/build-thr
 		s/@TARGET/thr/g ; \
 		s/@DBG//g ; \
 		s/@JS/js/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).thr.js | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).thr.js | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).thr.js
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -789,11 +744,6 @@ dist/libav-$(LIBAVJS_VERSION)-%.thr.mjs: build/ffmpeg-$(FFMPEG_VERSION)/build-th
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/thr/' configs/configs/$(*)/libs.txt` \
 		$(ES6FLAGS) $(THRFLAGS) -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).thr.mjs
@@ -810,7 +760,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.thr.mjs: build/ffmpeg-$(FFMPEG_VERSION)/build-th
 		s/@TARGET/thr/g ; \
 		s/@DBG//g ; \
 		s/@JS/mjs/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).thr.mjs | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).thr.mjs | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).thr.mjs
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -858,11 +808,6 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.thr.js: build/ffmpeg-$(FFMPEG_VERSION)/build
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/thr/' configs/configs/$(*)/libs.txt` \
 		-gsource-map $(THRFLAGS) -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.thr.js
@@ -879,7 +824,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.thr.js: build/ffmpeg-$(FFMPEG_VERSION)/build
 		s/@TARGET/thr/g ; \
 		s/@DBG/dbg./g ; \
 		s/@JS/js/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.thr.js | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.thr.js | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.thr.js
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -927,11 +872,6 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.thr.mjs: build/ffmpeg-$(FFMPEG_VERSION)/buil
 	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libswscale -lswscale \
 	'` \
  \
-		 \
-	`test ! -e build/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libfoob/libfoob.a || echo ' \
-	-Lbuild/ffmpeg-$(FFMPEG_VERSION)/build-thr-$(*)/libfoob -lfoob \
-	'` \
- \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/thr/' configs/configs/$(*)/libs.txt` \
 		-gsource-map $(ES6FLAGS) $(THRFLAGS) -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.thr.mjs
@@ -948,19 +888,22 @@ dist/libav-$(LIBAVJS_VERSION)-%.dbg.thr.mjs: build/ffmpeg-$(FFMPEG_VERSION)/buil
 		s/@TARGET/thr/g ; \
 		s/@DBG/dbg./g ; \
 		s/@JS/mjs/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.thr.mjs | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.thr.mjs | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).dbg.thr.mjs
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
 	rmdir $(@).d
 
 
-build/libav-$(LIBAVJS_VERSION).js: libav.in.js post.in.js funcs.json tools/apply-funcs.js
+build/libav-$(LIBAVJS_VERSION).js: libav.in.js libav.types.in.d.ts post.in.js funcs.json tools/apply-funcs.js
 	mkdir -p build dist
 	./tools/apply-funcs.js $(LIBAVJS_VERSION)
 
-build/libav.types.d.ts build/libav-$(LIBAVJS_VERSION).mjs build/exports.json build/post.js: build/libav-$(LIBAVJS_VERSION).js
+build/libav.types.d.ts build/libav-$(LIBAVJS_VERSION).in.mjs build/exports.json build/post.js: build/libav-$(LIBAVJS_VERSION).js
 	touch $@
+
+build/libav-$(LIBAVJS_VERSION).mjs: build/libav-$(LIBAVJS_VERSION).in.mjs
+	./tools/mk-es6.js ../build/libav-$(LIBAVJS_VERSION).js $< > $@
 
 node_modules/.bin/terser:
 	npm install
@@ -972,7 +915,7 @@ build/inst/base/cflags.txt:
 
 build/inst/thr/cflags.txt:
 	mkdir -p build/inst/thr
-	echo $(THRFLAGS) -gsource-map > $@
+	echo -pthread -gsource-map > $@
 
 RELEASE_VARIANTS=\
 	remux-cli encode-cli
@@ -1032,7 +975,7 @@ halfclean:
 
 clean: halfclean
 	-rm -rf build/inst
-	-rm -rf build/emfiberthreads-$(EMFT_VERSION)
+	-rm -rf build/emfiberthreads
 	-rm -rf build/opus-$(OPUS_VERSION)
 	-rm -rf build/libaom-$(LIBAOM_VERSION)
 	-rm -rf build/libvorbis-$(LIBVORBIS_VERSION)

@@ -7,14 +7,14 @@ FFMPEG_VERSION_MAJOR=7
 FFMPEG_VERSION_MINREV=1
 FFMPEG_VERSION=$(FFMPEG_VERSION_MAJOR).$(FFMPEG_VERSION_MINREV)
 LIBAVJS_VERSION_SUFFIX=
-LIBAVJS_VERSION_BASE=6.1
+LIBAVJS_VERSION_BASE=6.4
 LIBAVJS_VERSION=$(LIBAVJS_VERSION_BASE).$(FFMPEG_VERSION)$(LIBAVJS_VERSION_SUFFIX)
 LIBAVJS_VERSION_SHORT=$(LIBAVJS_VERSION_BASE).$(FFMPEG_VERSION_MAJOR)
 EMCC=emcc
 MINIFIER=node_modules/.bin/terser
 OPTFLAGS=-Oz
-NOTHRFLAGS=-Lbuild/inst/base/lib -lemfiberthreads
-THRFLAGS=-pthread
+EMFTFLAGS=-Lbuild/inst/base/lib -lemfiberthreads
+THRFLAGS=-pthread $(EMFTFLAGS)
 ES6FLAGS=-sEXPORT_ES6=1 -sUSE_ES6_IMPORT_META=1
 EFLAGS=\
 	`tools/memory-init-file-emcc.sh` \
@@ -116,7 +116,6 @@ dist/libav-$(LIBAVJS_VERSION)-%.$2$1.$5: build/ffmpeg-$(FFMPEG_VERSION)/build-$3
 		linkfflib(avfilter, $3) \
 		linkfflib(swresample, $3) \
 		linkfflib(swscale, $3) \
-		linkfflib(foob, $3) \
 		`test ! -e configs/configs/$(*)/libs.txt || sed 's/@TARGET/$3/' configs/configs/$(*)/libs.txt` \
 		$4 \
 		-o $(@).d/libav-$(LIBAVJS_VERSION)-$(*).$2$1.$5
@@ -133,7 +132,7 @@ dist/libav-$(LIBAVJS_VERSION)-%.$2$1.$5: build/ffmpeg-$(FFMPEG_VERSION)/build-$3
 		s/@TARGET/$1/g ; \
 		s/@DBG/$2/g ; \
 		s/@JS/$5/g \
-	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).$2$1.$5 | cat configs/configs/$(*)/license.js - > $(@)
+	" $(@).d/libav-$(LIBAVJS_VERSION)-$(*).$2$1.$5 | tools/license-header.sh configs/configs/$(*)/license.js > $(@)
 	rm -f $(@).d/libav-$(LIBAVJS_VERSION)-$(*).$2$1.$5
 	-chmod a-x $(@).d/*.wasm
 	-mv $(@).d/* dist/
@@ -141,27 +140,30 @@ dist/libav-$(LIBAVJS_VERSION)-%.$2$1.$5: build/ffmpeg-$(FFMPEG_VERSION)/build-$3
 ]]])
 
 # asm.js version
-buildrule(asm, [[[]]], base, [[[$(NOTHRFLAGS) -s WASM=0]]], js)
-buildrule(asm, [[[]]], base, [[[$(NOTHRFLAGS) $(ES6FLAGS) -s WASM=0]]], mjs)
-buildrule(asm, dbg., base, [[[$(NOTHRFLAGS) -g2 -s WASM=0]]], js)
-buildrule(asm, dbg., base, [[[$(NOTHRFLAGS) -g2 $(ES6FLAGS) -s WASM=0]]], mjs)
+buildrule(asm, [[[]]], base, [[[$(EMFTFLAGS) -s WASM=0]]], js)
+buildrule(asm, [[[]]], base, [[[$(EMFTFLAGS) $(ES6FLAGS) -s WASM=0]]], mjs)
+buildrule(asm, dbg., base, [[[$(EMFTFLAGS) -g2 -s WASM=0]]], js)
+buildrule(asm, dbg., base, [[[$(EMFTFLAGS) -g2 $(ES6FLAGS) -s WASM=0]]], mjs)
 # wasm version with no added features
-buildrule(wasm, [[[]]], base, [[[$(NOTHRFLAGS)]]], js)
-buildrule(wasm, [[[]]], base, [[[$(NOTHRFLAGS) $(ES6FLAGS)]]], mjs)
-buildrule(wasm, dbg., base, [[[$(NOTHRFLAGS) -gsource-map]]], js)
-buildrule(wasm, dbg., base, [[[$(NOTHRFLAGS) -gsource-map $(ES6FLAGS)]]], mjs)
+buildrule(wasm, [[[]]], base, [[[$(EMFTFLAGS)]]], js)
+buildrule(wasm, [[[]]], base, [[[$(EMFTFLAGS) $(ES6FLAGS)]]], mjs)
+buildrule(wasm, dbg., base, [[[$(EMFTFLAGS) -gsource-map]]], js)
+buildrule(wasm, dbg., base, [[[$(EMFTFLAGS) -gsource-map $(ES6FLAGS)]]], mjs)
 # wasm + threads
 buildrule(thr, [[[]]], thr, [[[$(THRFLAGS) -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency]]], js)
 buildrule(thr, [[[]]], thr, [[[$(ES6FLAGS) $(THRFLAGS) -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency]]], mjs)
 buildrule(thr, dbg., thr, [[[-gsource-map $(THRFLAGS) -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency]]], js)
 buildrule(thr, dbg., thr, [[[-gsource-map $(ES6FLAGS) $(THRFLAGS) -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency]]], mjs)
 
-build/libav-$(LIBAVJS_VERSION).js: libav.in.js post.in.js funcs.json tools/apply-funcs.js
+build/libav-$(LIBAVJS_VERSION).js: libav.in.js libav.types.in.d.ts post.in.js funcs.json tools/apply-funcs.js
 	mkdir -p build dist
 	./tools/apply-funcs.js $(LIBAVJS_VERSION)
 
-build/libav.types.d.ts build/libav-$(LIBAVJS_VERSION).mjs build/exports.json build/post.js: build/libav-$(LIBAVJS_VERSION).js
+build/libav.types.d.ts build/libav-$(LIBAVJS_VERSION).in.mjs build/exports.json build/post.js: build/libav-$(LIBAVJS_VERSION).js
 	touch $@
+
+build/libav-$(LIBAVJS_VERSION).mjs: build/libav-$(LIBAVJS_VERSION).in.mjs
+	./tools/mk-es6.js ../build/libav-$(LIBAVJS_VERSION).js $< > $@
 
 node_modules/.bin/terser:
 	npm install
@@ -173,7 +175,7 @@ build/inst/base/cflags.txt:
 
 build/inst/thr/cflags.txt:
 	mkdir -p build/inst/thr
-	echo $(THRFLAGS) -gsource-map > $@
+	echo -pthread -gsource-map > $@
 
 RELEASE_VARIANTS=\
 	remux-cli encode-cli
@@ -233,7 +235,7 @@ halfclean:
 
 clean: halfclean
 	-rm -rf build/inst
-	-rm -rf build/emfiberthreads-$(EMFT_VERSION)
+	-rm -rf build/emfiberthreads
 	-rm -rf build/opus-$(OPUS_VERSION)
 	-rm -rf build/libaom-$(LIBAOM_VERSION)
 	-rm -rf build/libvorbis-$(LIBVORBIS_VERSION)

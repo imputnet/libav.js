@@ -73,6 +73,7 @@
         ["avformat_new_stream", "number", ["number", "number"]],
         ["avformat_open_input", "number", ["number", "string", "number", "number"], {"async": true, "returnsErrno": true}],
         ["avformat_open_input_js", "number", ["string", "number", "number"], {"async": true, "returnsErrno": true}],
+        ["av_seek_frame", "number", ["number", "number", "number", "number"], {"async": true, "returnsErrno": true, "notypes": true}],
         ["avformat_seek_file", "number", ["number", "number", "number", "number", "number", "number"], {"async": true, "returnsErrno": true, "notypes": true}],
         ["avformat_seek_file_min", "number", ["number", "number", "number", "number"], {"async": true, "returnsErrno": true, "notypes": true}],
         ["avformat_seek_file_max", "number", ["number", "number", "number", "number"], {"async": true, "returnsErrno": true, "notypes": true}],
@@ -144,13 +145,13 @@
         "mkfsfhfile",
         "unlinkfsfhfile",
         "mkworkerfsfile",
-        "unlinkworkerfsfile"
+        "unlinkworkerfsfile",
+        "ff_reader_dev_send",
+        "ff_block_reader_dev_send",
+        "ff_reader_dev_waiting"
     ],
 
     "meta": [
-        "ff_reader_dev_send",
-        "ff_block_reader_dev_send",
-        "ff_reader_dev_waiting",
         "ff_init_encoder",
         "ff_init_decoder",
         "ff_free_encoder",
@@ -306,10 +307,14 @@
             {"name": "time_base", "rational": true}
         ]],
         ["AVFormatContext", [
+            "duration",
+            "durationhi",
             "flags",
             "nb_streams",
             "oformat",
             "pb",
+            "start_time",
+            "start_timehi",
             {"name": "streams", "array": true}
         ]],
         ["AVStream", [
