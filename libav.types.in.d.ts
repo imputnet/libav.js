@@ -407,8 +407,31 @@ declare namespace LibAV {
          */
         bigIntToi64(val: BigInt): [number, number];
 
-        // Enumerations:
+        /**
+         * Extract the channel layout from a frame (or any other source of
+         * channel layout). Unifies the various ways that channel layouts may
+         * be stored.
+         */
+        ff_channel_layout(frame: {
+            channel_layout?: number,
+            channels?: number
+        }): number;
+
+        /**
+         * Extract the channel count from a frame (or any other source of
+         * channel layout). Unifies the various ways that channel layouts may be
+         * stored.
+         */
+        ff_channels(frame: {
+            channel_layout?: number,
+            channels?: number
+        }): number;
+
+        // Constants:
+        AV_TIME_BASE: number;
         AV_OPT_SEARCH_CHILDREN: number;
+
+        // Enumerations:
         AVMEDIA_TYPE_UNKNOWN: number;
         AVMEDIA_TYPE_VIDEO: number;
         AVMEDIA_TYPE_AUDIO: number;

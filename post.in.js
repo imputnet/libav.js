@@ -1748,6 +1748,10 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
 
 /**
  * Filter some number of frames, possibly corresponding to multiple sources.
+ * Only one sink is allowed, but config is per source. Set
+ * `config.ignoreSinkTimebase` to leave frames' timebase as it was, rather than
+ * imposing the timebase of the buffer sink. Set `config.copyoutFrame` to use a
+ * different copier than the default.
  * @param srcs  AVFilterContext(s), input
  * @param buffersink_ctx  AVFilterContext, output
  * @param framePtr  AVFrame
@@ -1760,6 +1764,7 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
  *     srcs: number, buffersink_ctx: number, framePtr: number,
  *     inFrames: (Frame | number)[], config?: boolean | {
  *         fin?: boolean,
+ *         ignoreSinkTimebase?: boolean,
  *         copyoutFrame?: "default" | "video" | "video_packed"
  *     }
  * ): @promise@Frame[]@;
@@ -1767,6 +1772,7 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
  *     srcs: number[], buffersink_ctx: number, framePtr: number,
  *     inFrames: (Frame | number)[][], config?: boolean[] | {
  *         fin?: boolean,
+ *         ignoreSinkTimebase?: boolean,
  *         copyoutFrame?: "default" | "video" | "video_packed"
  *     }[]
  * ): @promise@Frame[]@
@@ -1774,6 +1780,7 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
  *     srcs: number, buffersink_ctx: number, framePtr: number,
  *     inFrames: (Frame | number)[], config: {
  *         fin?: boolean,
+ *         ignoreSinkTimebase?: boolean,
  *         copyoutFrame: "ptr"
  *     }
  * ): @promise@number[]@;
@@ -1781,6 +1788,7 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
  *     srcs: number[], buffersink_ctx: number, framePtr: number,
  *     inFrames: (Frame | number)[][], config: {
  *         fin?: boolean,
+ *         ignoreSinkTimebase?: boolean,
  *         copyoutFrame: "ptr"
  *     }[]
  * ): @promise@number[]@
@@ -1788,6 +1796,7 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
  *     srcs: number, buffersink_ctx: number, framePtr: number,
  *     inFrames: (Frame | number)[], config: {
  *         fin?: boolean,
+ *         ignoreSinkTimebase?: boolean,
  *         copyoutFrame: "ImageData"
  *     }
  * ): @promise@ImageData[]@;
@@ -1795,6 +1804,7 @@ var ff_init_filter_graph = Module.ff_init_filter_graph = function(filters_descr,
  *     srcs: number[], buffersink_ctx: number, framePtr: number,
  *     inFrames: (Frame | number)[][], config: {
  *         fin?: boolean,
+ *         ignoreSinkTimebase?: boolean,
  *         copyoutFrame: "ImageData"
  *     }[]
  * ): @promise@ImageData[]@
@@ -1823,7 +1833,7 @@ var ff_filter_multi = Module.ff_filter_multi = function(srcs, buffersink_ctx, fr
         return Math.max(a, b);
     });
 
-    function handleFrame(buffersrc_ctx, inFrame, copyoutFrame) {
+    function handleFrame(buffersrc_ctx, inFrame, copyoutFrame, config) {
         if (inFrame !== null)
             ff_copyin_frame(framePtr, inFrame);
 
@@ -1846,11 +1856,10 @@ var ff_filter_multi = Module.ff_filter_multi = function(srcs, buffersink_ctx, fr
 
             var outFrame = copyoutFrame(framePtr);
 
-            if (tbNum) {
+            if (tbNum && !config.ignoreSinkTimebase) {
                 if (typeof outFrame === "number") {
-                    if (!AVFrame_time_base_num(outFrame))
-                        AVFrame_time_base_s(outFrame, tbNum, tbDen);
-                } else if (outFrame && !outFrame.time_base_num) {
+                    AVFrame_time_base_s(outFrame, tbNum, tbDen);
+                } else if (outFrame) {
                     outFrame.time_base_num = tbNum;
                     outFrame.time_base_den = tbDen;
                 }
@@ -1866,25 +1875,9 @@ var ff_filter_multi = Module.ff_filter_multi = function(srcs, buffersink_ctx, fr
     // Choose a frame copier per stream
     var copyoutFrames = [];
     for (var ti = 0; ti < inFrames.length; ti++) (function(ti) {
-        var copyoutFrameO = ff_copyout_frame;
+        var copyoutFrame = ff_copyout_frame;
         if (config[ti].copyoutFrame)
-            copyoutFrameO = ff_copyout_frame_versions[config[ti].copyoutFrame];
-        var copyoutFrame = function(ptr) {
-            var ret = copyoutFrameO(ptr);
-            if (!ret.time_base_num) {
-                ret.time_base_num = tbNum;
-                ret.time_base_den = tbDen;
-            }
-            return ret;
-        };
-        if (config[ti].copyoutFrame === "ptr") {
-            copyoutFrame = function(ptr) {
-                var ret = ff_copyout_frame_ptr(ptr);
-                if (!AVFrame_time_base_num(ret))
-                    AVFrame_time_base_s(ret, tbNum, tbDen);
-                return ret;
-            };
-        }
+            copyoutFrame = ff_copyout_frame_versions[config[ti].copyoutFrame];
         copyoutFrames.push(copyoutFrame);
     })(ti);
 
@@ -1892,8 +1885,8 @@ var ff_filter_multi = Module.ff_filter_multi = function(srcs, buffersink_ctx, fr
     for (var fi = 0; fi <= max; fi++) {
         for (var ti = 0; ti < inFrames.length; ti++) {
             var inFrame = inFrames[ti][fi];
-            if (inFrame) handleFrame(srcs[ti], inFrame, copyoutFrames[ti]);
-            else if (config[ti].fin) handleFrame(srcs[ti], null, copyoutFrames[ti]);
+            if (inFrame) handleFrame(srcs[ti], inFrame, copyoutFrames[ti], config[ti]);
+            else if (config[ti].fin) handleFrame(srcs[ti], null, copyoutFrames[ti], config[ti]);
         }
     }
 

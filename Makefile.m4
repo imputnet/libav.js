@@ -7,7 +7,7 @@ FFMPEG_VERSION_MAJOR=7
 FFMPEG_VERSION_MINREV=1
 FFMPEG_VERSION=$(FFMPEG_VERSION_MAJOR).$(FFMPEG_VERSION_MINREV)
 LIBAVJS_VERSION_SUFFIX=
-LIBAVJS_VERSION_BASE=6.4
+LIBAVJS_VERSION_BASE=6.5
 LIBAVJS_VERSION=$(LIBAVJS_VERSION_BASE).$(FFMPEG_VERSION)$(LIBAVJS_VERSION_SUFFIX)
 LIBAVJS_VERSION_SHORT=$(LIBAVJS_VERSION_BASE).$(FFMPEG_VERSION_MAJOR)
 EMCC=emcc
@@ -185,6 +185,7 @@ release: extract
 	mkdir dist/release/libav.js-$(LIBAVJS_VERSION)
 	cp -a README.md docs dist/release/libav.js-$(LIBAVJS_VERSION)/
 	mkdir dist/release/libav.js-$(LIBAVJS_VERSION)/dist
+	$(MAKE) dist/release/libav.js-types-$(LIBAVJS_VERSION)
 	for v in $(RELEASE_VARIANTS); \
 	do \
 		$(MAKE) build-$$v; \
@@ -217,6 +218,12 @@ dist/release/libav.js-$(LIBAVJS_VERSION)-%: build-%
 	sed 's/@VARIANT/$(*)/g ; s/@VERSION/$(LIBAVJS_VERSION)/g ; s/@VER/$(LIBAVJS_VERSION_SHORT)/g' \
 		package-one-variant.json > $(@)/package.json
 
+dist/release/libav.js-types-$(LIBAVJS_VERSION): dist/libav.types.d.ts
+	mkdir -p $(@)/dist
+	cp dist/libav.types.d.ts $(@)/dist
+	sed 's/@VERSION/$(LIBAVJS_VERSION)/g ; s/@VER/$(LIBAVJS_VERSION_SHORT)/g' \
+		package-types-only.json > $(@)/package.json
+
 npm-publish:
 	cd dist/release && unzip libav.js-$(LIBAVJS_VERSION).zip
 	cd dist/release/libav.js-$(LIBAVJS_VERSION) && \
@@ -224,6 +231,7 @@ npm-publish:
 	  rm -f dist/*.dbg.* dist/*-av1* dist/*-vp9* dist/*.asm.mjs && \
 	  npm publish
 	rm -rf dist/release/libav.js-$(LIBAVJS_VERSION)
+	( cd dist/release/libav.js-types-$(LIBAVJS_VERSION) && npm publish --access=public )
 	for v in $(RELEASE_VARIANTS); \
 	do \
 		( cd dist/release/libav.js-$(LIBAVJS_VERSION)-$$v && npm publish --access=public ) \
