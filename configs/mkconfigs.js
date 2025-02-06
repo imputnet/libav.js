@@ -33,12 +33,36 @@ const hevc = ["parser-hevc", "decoder-hevc"];
 
 // Images
 const images = [
-    "format-image2", "format-mjpeg", "format-gif",
-    "demuxer-image_webp_pipe", "muxer-webp",
-    "demuxer-image_gif_pipe", "demuxer-image_jpeg_pipe", "demuxer-image_png_pipe",
-    "parser-mjpeg", "parser-png", "parser-gif", "parser-webp",
-    "codec-gif", "codec-mjpeg", "codec-png",
-    "decoder-webp","encoder-libwebp"
+    "format-image2",
+
+    // JPEG, MJPEG
+    "format-mjpeg", "demuxer-image_jpeg_pipe", "parser-mjpeg", "codec-mjpeg", 
+
+    // DDS
+    "decoder-dds", "demuxer-image_dds_pipe",
+
+    // GIF
+    "format-gif", "demuxer-image_gif_pipe", "parser-gif", "codec-gif",
+
+    // PNG
+    "codec-png", "parser-png", "demuxer-image_png_pipe",
+
+    // WEBP
+    "demuxer-image_webp_pipe", "muxer-webp", "parser-webp", "decoder-webp", "encoder-libwebp",
+
+    // AVIF
+    aomav1, "muxer-avif",
+
+    // BMP
+    "codec-bmp", "parser-bmp", "demuxer-image_bmp_pipe",
+
+    // ICO,
+    "format-ico",
+
+    // todo: JPEGXL
+
+    // TIFF
+    "codec-tiff", "demuxer-image_tiff_pipe"
 ];
 
 // all WAV formats under the sun
@@ -182,19 +206,30 @@ const configsRaw = [
 
     ["encode",
         [
+          // Images
             images,
-            "format-mov", "format-mp4", "audio-filters", "swscale",
+
+          // Video formats
+            "format-mov", "format-mp4",
             "format-matroska", "format-webm", "format-avi",
-
-            "parser-av1","codec-libaom_av1",
             "libvpx",
-            "parser-vp8","codec-libvpx_vp8",
-            "parser-vp9","codec-libvpx_vp9",
+            "parser-vp8", "parser-vp9",
 
-            "muxer-ipod", "format-flac", "format-mp3", "format-ogg", "muxer-opus",
-            "parser-opus","codec-libopus","codec-libvorbis","codec-alac", "decoder-mp3","encoder-libmp3lame",
-            "parser-flac","codec-flac", wav, aac,
-            "muxer-avif", "codec-prores", "codec-qtrle"
+            aomav1,
+
+
+          // Audio
+            "muxer-ipod", "format-ogg", "muxer-opus",
+            opus,
+
+            // Apple-flavored lossless
+            "codec-libvorbis", "codec-alac",
+            "codec-prores", "codec-qtrle",
+
+            flac, wav, aac, mp3,
+            "codec-prores", "codec-qtrle",
+          // Misc
+            "audio-filters", "swscale",
         ], { cli: true }
     ],
 
