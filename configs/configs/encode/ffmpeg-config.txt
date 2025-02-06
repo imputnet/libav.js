@@ -4,73 +4,64 @@
 --enable-muxer=image2
 --enable-demuxer=mjpeg
 --enable-muxer=mjpeg
+--enable-demuxer=image_jpeg_pipe
+--enable-parser=mjpeg
+--enable-decoder=mjpeg
+--enable-encoder=mjpeg
+--enable-decoder=dds
+--enable-demuxer=image_dds_pipe
 --enable-demuxer=gif
 --enable-decoder=gif
 --enable-muxer=gif
 --enable-encoder=gif
---enable-demuxer=image_webp_pipe
---enable-muxer=webp
 --enable-demuxer=image_gif_pipe
---enable-demuxer=image_jpeg_pipe
---enable-demuxer=image_png_pipe
---enable-parser=mjpeg
---enable-parser=png
 --enable-parser=gif
---enable-parser=webp
 --enable-decoder=gif
 --enable-encoder=gif
---enable-decoder=mjpeg
---enable-encoder=mjpeg
 --enable-zlib
 --enable-decoder=png
 --enable-encoder=png
+--enable-parser=png
+--enable-demuxer=image_png_pipe
+--enable-demuxer=image_webp_pipe
+--enable-muxer=webp
+--enable-parser=webp
 --enable-decoder=webp
 --enable-libwebp
 --enable-encoder=libwebp
 --enable-encoder=libwebp_anim
+--enable-parser=av1,codec-libaom_av1
+--enable-muxer=avif
+--enable-decoder=bmp
+--enable-encoder=bmp
+--enable-parser=bmp
+--enable-demuxer=image_bmp_pipe
+--enable-demuxer=ico
+--enable-muxer=ico
+--enable-decoder=tiff
+--enable-encoder=tiff
+--enable-demuxer=image_tiff_pipe
 --enable-demuxer=mov
 --enable-muxer=mov
 --enable-demuxer=mov
 --enable-muxer=ipod
 --enable-muxer=mov
 --enable-muxer=mp4
---enable-filter=acompressor --enable-filter=adeclick --enable-filter=adeclip
---enable-filter=aecho --enable-filter=afade --enable-filter=aformat
---enable-filter=agate --enable-filter=alimiter --enable-filter=amix
---enable-filter=apad --enable-filter=asettb --enable-filter=asplit
---enable-filter=atempo --enable-filter=atrim --enable-filter=bandpass
---enable-filter=bandreject --enable-filter=dynaudnorm --enable-filter=equalizer
---enable-filter=loudnorm --enable-filter=pan --enable-filter=amix
---enable-filter=volume --enable-filter=anull
---enable-filter=scale
 --enable-demuxer=matroska
 --enable-muxer=matroska
 --enable-demuxer=matroska
 --enable-muxer=matroska --enable-muxer=webm
 --enable-demuxer=avi
 --enable-muxer=avi
+--enable-parser=vp8
+--enable-parser=vp9
 --enable-parser=av1
 --enable-libaom
 --enable-decoder=libaom_av1
 --enable-bsf=av1_metadata
 --enable-bsf=extract_extradata
 --enable-encoder=libaom_av1
---enable-parser=vp8
---enable-libvpx
---enable-decoder=libvpx_vp8
---enable-libvpx
---enable-encoder=libvpx_vp8
---enable-parser=vp9
---enable-libvpx
---enable-decoder=libvpx_vp9
---enable-bsf=vp9_metadata
---enable-libvpx
---enable-encoder=libvpx_vp9
 --enable-muxer=ipod
---enable-demuxer=flac
---enable-muxer=flac
---enable-demuxer=mp3
---enable-muxer=mp3
 --enable-demuxer=ogg
 --enable-muxer=ogg
 --enable-muxer=opus
@@ -84,9 +75,13 @@
 --enable-encoder=libvorbis
 --enable-decoder=alac
 --enable-encoder=alac
---enable-decoder=mp3
---enable-libmp3lame
---enable-encoder=libmp3lame
+--enable-decoder=prores
+--enable-bsf=prores_metadata
+--enable-encoder=prores
+--enable-decoder=qtrle
+--enable-encoder=qtrle
+--enable-demuxer=flac
+--enable-muxer=flac
 --enable-parser=flac
 --enable-decoder=flac
 --enable-encoder=flac
@@ -156,9 +151,22 @@
 --enable-parser=aac
 --enable-decoder=aac
 --enable-encoder=aac
---enable-muxer=avif
+--enable-demuxer=mp3
+--enable-muxer=mp3
+--enable-decoder=mp3
+--enable-libmp3lame
+--enable-encoder=libmp3lame
 --enable-decoder=prores
 --enable-bsf=prores_metadata
 --enable-encoder=prores
 --enable-decoder=qtrle
 --enable-encoder=qtrle
+--enable-filter=acompressor --enable-filter=adeclick --enable-filter=adeclip
+--enable-filter=aecho --enable-filter=afade --enable-filter=aformat
+--enable-filter=agate --enable-filter=alimiter --enable-filter=amix
+--enable-filter=apad --enable-filter=asettb --enable-filter=asplit
+--enable-filter=atempo --enable-filter=atrim --enable-filter=bandpass
+--enable-filter=bandreject --enable-filter=dynaudnorm --enable-filter=equalizer
+--enable-filter=loudnorm --enable-filter=pan --enable-filter=amix
+--enable-filter=volume --enable-filter=anull
+--enable-filter=scale

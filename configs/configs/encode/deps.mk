@@ -8,10 +8,10 @@ build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode/ffbuild/config.mak: build/inst/t
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libwebpdemux.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libwebpmux.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/libsharpyuv.pc
-build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode/ffbuild/config.mak: build/inst/base/lib/pkgconfig/aom.pc
-build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/aom.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode/ffbuild/config.mak: build/inst/base/lib/pkgconfig/vpx.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/vpx.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode/ffbuild/config.mak: build/inst/base/lib/pkgconfig/aom.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/aom.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode/ffbuild/config.mak: build/inst/base/lib/pkgconfig/opus.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/opus.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode/ffbuild/config.mak: build/inst/base/lib/pkgconfig/vorbis.pc

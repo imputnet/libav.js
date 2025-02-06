@@ -3,8 +3,8 @@ build/inst/@TARGET/lib/libwebp.a
 build/inst/@TARGET/lib/libwebpmux.a
 build/inst/@TARGET/lib/libwebpdemux.a
 build/inst/@TARGET/lib/libsharpyuv.a
-build/inst/@TARGET/lib/libaom.a
 build/inst/@TARGET/lib/libvpx.a
+build/inst/@TARGET/lib/libaom.a
 build/inst/@TARGET/lib/libopus.a
 build/inst/@TARGET/lib/libvorbis.a
 build/inst/@TARGET/lib/libvorbisenc.a
