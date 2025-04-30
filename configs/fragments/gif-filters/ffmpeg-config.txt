@@ -1,0 +1,4 @@
+--enable-filter=scale
+--enable-filter=split
+--enable-filter=palettegen
+--enable-filter=paletteuse

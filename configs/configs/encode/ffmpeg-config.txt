@@ -170,3 +170,7 @@
 --enable-filter=loudnorm --enable-filter=pan --enable-filter=amix
 --enable-filter=volume --enable-filter=anull
 --enable-filter=scale
+--enable-filter=scale
+--enable-filter=split
+--enable-filter=palettegen
+--enable-filter=paletteuse

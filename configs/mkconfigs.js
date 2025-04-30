@@ -229,7 +229,7 @@ const configsRaw = [
             flac, wav, aac, mp3,
             "codec-prores", "codec-qtrle",
           // Misc
-            "audio-filters", "swscale",
+            "audio-filters", "swscale", "gif-filters",
         ], { cli: true }
     ],
 

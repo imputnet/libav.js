@@ -204,3 +204,7 @@
 --enable-demuxer=pcm_vidc
 --enable-demuxer=pcm_s16le
 --enable-muxer=pcm_s16le
+--enable-filter=scale
+--enable-filter=split
+--enable-filter=palettegen
+--enable-filter=paletteuse
