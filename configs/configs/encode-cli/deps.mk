@@ -12,6 +12,8 @@ build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/i
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode-cli/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/vpx.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/inst/base/lib/pkgconfig/aom.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode-cli/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/aom.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/inst/base/lib/pkgconfig/openh264.pc
+build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode-cli/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/openh264.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/inst/base/lib/pkgconfig/opus.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-thr-encode-cli/ffbuild/config.mak: build/inst/thr/lib/pkgconfig/opus.pc
 build/ffmpeg-$(FFMPEG_VERSION)/build-base-encode-cli/ffbuild/config.mak: build/inst/base/lib/pkgconfig/vorbis.pc

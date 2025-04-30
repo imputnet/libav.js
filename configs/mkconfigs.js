@@ -215,7 +215,7 @@ const configsRaw = [
             "libvpx",
             "parser-vp8", "parser-vp9",
 
-            aomav1,
+            aomav1, h264,
 
 
           // Audio
