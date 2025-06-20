@@ -230,6 +230,10 @@ const configsRaw = [
             "codec-prores", "codec-qtrle",
           // Misc
             "audio-filters", "swscale", "gif-filters",
+
+          // Subtitles
+            "codec-webvtt", "format-webvtt",
+            "codec-movtext"
         ], { cli: true }
     ],
 
@@ -237,7 +241,9 @@ const configsRaw = [
         "format-mp3","format-mp4",
         "format-webm","format-ogg",
         "muxer-opus","parser-opus",
-        "format-wav","muxer-ipod"
+        "format-wav","muxer-ipod",
+        "codec-webvtt", "format-webvtt",
+        "codec-movtext"
     ], { cli: true }],
 
     ["empty", []],

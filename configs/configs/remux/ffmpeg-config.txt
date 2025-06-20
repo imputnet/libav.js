@@ -17,3 +17,9 @@
 --enable-encoder=pcm_s16le --enable-encoder=pcm_s24le
 --enable-muxer=wav
 --enable-muxer=ipod
+--enable-decoder=webvtt
+--enable-encoder=webvtt
+--enable-demuxer=webvtt
+--enable-muxer=webvtt
+--enable-decoder=movtext
+--enable-encoder=movtext

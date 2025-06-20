@@ -181,4 +181,10 @@
 --enable-filter=split
 --enable-filter=palettegen
 --enable-filter=paletteuse
+--enable-decoder=webvtt
+--enable-encoder=webvtt
+--enable-demuxer=webvtt
+--enable-muxer=webvtt
+--enable-decoder=movtext
+--enable-encoder=movtext
 --enable-ffmpeg --enable-ffprobe
